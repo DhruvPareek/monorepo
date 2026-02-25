@@ -860,6 +860,186 @@ pub mod test {
         });
     }
 
+    /// Test that the batch API produces the same root as the old type-state flow.
+    #[test_traced("DEBUG")]
+    pub fn test_batch_api_matches_type_state() {
+        let executor = deterministic::Runner::default();
+        executor.start(|context| async move {
+            let mut hasher = StandardHasher::<Sha256>::new();
+
+            // Build a DB using the old type-state API.
+            let partition_old = "batch-old".to_string();
+            let db_old = open_db(context.with_label("old"), partition_old).await;
+            let mut db_old = db_old.into_mutable();
+            let k1 = Sha256::fill(0x01);
+            let v1 = Sha256::fill(0xA1);
+            let k2 = Sha256::fill(0x02);
+            let v2 = Sha256::fill(0xA2);
+            db_old.write_batch([(k1, Some(v1)), (k2, Some(v2))]).await.unwrap();
+            let (db_old, range_old) = db_old.commit(None).await.unwrap();
+            let db_old = db_old.into_merkleized().await.unwrap();
+            let root_old = db_old.root();
+
+            // Build a DB using the new batch API.
+            let partition_new = "batch-new".to_string();
+            let db_new = open_db(context.with_label("new"), partition_new).await;
+            let mut batch = db_new.new_batch();
+            batch.write_batch([(k1, Some(v1)), (k2, Some(v2))]).await.unwrap();
+            let committed = batch.commit(None).await.unwrap();
+            let changeset = committed.merkleize().await.unwrap();
+            let range_new = changeset.committed_range().clone();
+            let root_new = changeset.root();
+            let db_new = changeset.apply();
+
+            // Roots must match.
+            assert_eq!(root_old, root_new, "batch API root should match type-state root");
+            assert_eq!(range_old, range_new, "committed ranges should match");
+
+            // Proofs should work after apply.
+            let proof = db_new.key_value_proof(hasher.inner(), k1).await.unwrap();
+            assert!(CleanCurrentTest::verify_key_value_proof(
+                hasher.inner(),
+                k1,
+                v1,
+                &proof,
+                &root_new,
+            ));
+            let proof = db_new.key_value_proof(hasher.inner(), k2).await.unwrap();
+            assert!(CleanCurrentTest::verify_key_value_proof(
+                hasher.inner(),
+                k2,
+                v2,
+                &proof,
+                &root_new,
+            ));
+
+            db_old.destroy().await.unwrap();
+            db_new.destroy().await.unwrap();
+        });
+    }
+
+    /// Test multiple batches in sequence.
+    #[test_traced("DEBUG")]
+    pub fn test_batch_api_multiple_batches() {
+        let executor = deterministic::Runner::default();
+        executor.start(|context| async move {
+            let mut hasher = StandardHasher::<Sha256>::new();
+            let partition = "batch-multi".to_string();
+            let mut db = open_db(context, partition).await;
+
+            // First batch: insert two keys.
+            let k1 = Sha256::fill(0x01);
+            let v1 = Sha256::fill(0xA1);
+            let k2 = Sha256::fill(0x02);
+            let v2 = Sha256::fill(0xA2);
+
+            let mut batch = db.new_batch();
+            batch.write_batch([(k1, Some(v1)), (k2, Some(v2))]).await.unwrap();
+            let committed = batch.commit(None).await.unwrap();
+            let changeset = committed.merkleize().await.unwrap();
+            let root1 = changeset.root();
+            db = changeset.apply();
+
+            // Verify keys after first batch.
+            assert_eq!(db.get(&k1).await.unwrap(), Some(v1));
+            assert_eq!(db.get(&k2).await.unwrap(), Some(v2));
+
+            // Second batch: update one key, delete another.
+            let v1_updated = Sha256::fill(0xB1);
+            let mut batch = db.new_batch();
+            batch.write_batch([(k1, Some(v1_updated)), (k2, None)]).await.unwrap();
+            let committed = batch.commit(None).await.unwrap();
+            let changeset = committed.merkleize().await.unwrap();
+            let root2 = changeset.root();
+            db = changeset.apply();
+
+            // Root should have changed.
+            assert_ne!(root1, root2);
+
+            // Verify state after second batch.
+            assert_eq!(db.get(&k1).await.unwrap(), Some(v1_updated));
+            assert_eq!(db.get(&k2).await.unwrap(), None);
+
+            // Proof for updated key should verify.
+            let proof = db.key_value_proof(hasher.inner(), k1).await.unwrap();
+            assert!(CleanCurrentTest::verify_key_value_proof(
+                hasher.inner(),
+                k1,
+                v1_updated,
+                &proof,
+                &root2,
+            ));
+
+            // Old value should not verify.
+            assert!(!CleanCurrentTest::verify_key_value_proof(
+                hasher.inner(),
+                k1,
+                v1,
+                &proof,
+                &root2,
+            ));
+
+            // Third batch: re-insert deleted key.
+            let v2_new = Sha256::fill(0xC2);
+            let mut batch = db.new_batch();
+            batch.write_batch([(k2, Some(v2_new))]).await.unwrap();
+            let committed = batch.commit(None).await.unwrap();
+            let changeset = committed.merkleize().await.unwrap();
+            let root3 = changeset.root();
+            db = changeset.apply();
+
+            assert_ne!(root2, root3);
+            assert_eq!(db.get(&k2).await.unwrap(), Some(v2_new));
+
+            let proof = db.key_value_proof(hasher.inner(), k2).await.unwrap();
+            assert!(CleanCurrentTest::verify_key_value_proof(
+                hasher.inner(),
+                k2,
+                v2_new,
+                &proof,
+                &root3,
+            ));
+
+            db.destroy().await.unwrap();
+        });
+    }
+
+    /// Test that the batch API handles many random operations and produces the same root as the
+    /// type-state API.
+    #[test_traced("WARN")]
+    pub fn test_batch_api_random_ops() {
+        let executor = deterministic::Runner::default();
+        executor.start(|mut context| async move {
+            let seed = context.next_u64();
+
+            // Build with old type-state API.
+            let partition_old = "batch-random-old".to_string();
+            let db_old = open_db(context.with_label("old"), partition_old).await;
+            let db_old = apply_random_ops::<CleanCurrentTest>(200, true, seed, db_old.into_mutable())
+                .await
+                .unwrap();
+            let (db_old, _) = db_old.commit(None).await.unwrap();
+            let db_old = db_old.into_merkleized().await.unwrap();
+            let root_old = db_old.root();
+
+            // Build with new batch API using the same seed.
+            let partition_new = "batch-random-new".to_string();
+            let db_new = open_db(context.with_label("new"), partition_new).await;
+            let db_new =
+                apply_random_ops::<CleanCurrentTest>(200, true, seed, db_new.into_mutable())
+                    .await
+                    .unwrap();
+            let (db_new, _) = db_new.commit(None).await.unwrap();
+            let db_new = db_new.into_merkleized().await.unwrap();
+            let root_new = db_new.root();
+
+            assert_eq!(root_old, root_new, "identical random ops should produce the same root");
+
+            db_old.destroy().await.unwrap();
+            db_new.destroy().await.unwrap();
+        });
+    }
+
     #[allow(dead_code)]
     fn assert_merkleized_db_futures_are_send(
         db: &mut CleanCurrentTest,

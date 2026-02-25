@@ -375,6 +375,133 @@ where
             },
         }
     }
+
+    /// Start a new batch of mutations. Consumes the Db; recover it via
+    /// [`CurrentChangeset::apply`].
+    pub fn new_batch(self) -> CurrentBatch<E, C, I, H, U, N> {
+        CurrentBatch {
+            db: self.into_mutable(),
+        }
+    }
+}
+
+/// A batch of mutations against a merkleized, durable [Db].
+///
+/// Created by [`Db::new_batch`]. Mutations accumulate via `write_batch` (defined
+/// on ordered/unordered specializations). After committing and merkleizing, the
+/// batch produces a [`CurrentChangeset`] whose [`apply`](CurrentChangeset::apply)
+/// returns the Db with an updated root.
+pub struct CurrentBatch<
+    E: Storage + Clock + Metrics,
+    C: Contiguous<Item: CodecShared>,
+    I: UnorderedIndex<Value = Location>,
+    H: Hasher,
+    U: Send + Sync,
+    const N: usize,
+> {
+    /// The database in (Unmerkleized, NonDurable) state.
+    pub(super) db: Db<E, C, I, H, U, N, Unmerkleized, NonDurable>,
+}
+
+impl<E, K, V, U, C, I, H, const N: usize> CurrentBatch<E, C, I, H, U, N>
+where
+    E: Storage + Clock + Metrics,
+    K: Key,
+    V: ValueEncoding,
+    U: Update<K, V>,
+    C: Mutable<Item = Operation<K, V, U>> + Persistable<Error = JournalError>,
+    I: UnorderedIndex<Value = Location>,
+    H: Hasher,
+    Operation<K, V, U>: Codec,
+{
+    /// Commit pending operations. Consumes the batch and returns a
+    /// [`CommittedCurrentBatch`] ready for merkleization.
+    pub async fn commit(
+        self,
+        metadata: Option<V::Value>,
+    ) -> Result<CommittedCurrentBatch<E, C, I, H, U, N>, Error> {
+        let (db, range) = self.db.commit(metadata).await?;
+        Ok(CommittedCurrentBatch {
+            db,
+            committed_range: range,
+        })
+    }
+}
+
+/// A committed batch, ready for merkleization.
+///
+/// Created by [`CurrentBatch::commit`].
+pub struct CommittedCurrentBatch<
+    E: Storage + Clock + Metrics,
+    C: Contiguous<Item: CodecShared>,
+    I: UnorderedIndex<Value = Location>,
+    H: Hasher,
+    U: Send + Sync,
+    const N: usize,
+> {
+    db: Db<E, C, I, H, U, N, Unmerkleized, Durable>,
+    committed_range: Range<Location>,
+}
+
+impl<E, K, V, U, C, I, H, const N: usize> CommittedCurrentBatch<E, C, I, H, U, N>
+where
+    E: Storage + Clock + Metrics,
+    K: Key,
+    V: ValueEncoding,
+    U: Update<K, V>,
+    C: Contiguous<Item = Operation<K, V, U>>,
+    I: UnorderedIndex<Value = Location>,
+    H: Hasher,
+    Operation<K, V, U>: Codec,
+{
+    /// Merkleize the committed batch. Returns a [`CurrentChangeset`] containing
+    /// the new root.
+    pub async fn merkleize(self) -> Result<CurrentChangeset<E, C, I, H, U, N>, Error> {
+        let db = self.db.into_merkleized().await?;
+        Ok(CurrentChangeset {
+            db,
+            committed_range: self.committed_range,
+        })
+    }
+}
+
+/// The result of merkleizing a committed batch.
+///
+/// Created by [`CommittedCurrentBatch::merkleize`].
+pub struct CurrentChangeset<
+    E: Storage + Clock + Metrics,
+    C: Contiguous<Item: CodecShared>,
+    I: UnorderedIndex<Value = Location>,
+    H: Hasher,
+    U: Send + Sync,
+    const N: usize,
+> {
+    db: Db<E, C, I, H, U, N, Merkleized<DigestOf<H>>, Durable>,
+    committed_range: Range<Location>,
+}
+
+impl<E, C, I, H, U, const N: usize> CurrentChangeset<E, C, I, H, U, N>
+where
+    E: Storage + Clock + Metrics,
+    C: Contiguous<Item: CodecShared>,
+    I: UnorderedIndex<Value = Location>,
+    H: Hasher,
+    U: Send + Sync,
+{
+    /// The new canonical root.
+    pub const fn root(&self) -> H::Digest {
+        self.db.state.root
+    }
+
+    /// The range of committed operation locations.
+    pub const fn committed_range(&self) -> &Range<Location> {
+        &self.committed_range
+    }
+
+    /// Apply the changeset, recovering the Db with the new root.
+    pub fn apply(self) -> Db<E, C, I, H, U, N, Merkleized<DigestOf<H>>, Durable> {
+        self.db
+    }
 }
 
 // Functionality shared across Unmerkleized states.

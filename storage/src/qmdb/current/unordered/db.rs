@@ -107,6 +107,45 @@ where
     }
 }
 
+/// Type alias for the unordered current batch.
+pub type Batch<E, C, K, V, I, H, const N: usize> =
+    crate::qmdb::current::db::CurrentBatch<E, C, I, H, Update<K, V>, N>;
+
+/// Type alias for the unordered committed batch.
+pub type CommittedBatch<E, C, K, V, I, H, const N: usize> =
+    crate::qmdb::current::db::CommittedCurrentBatch<E, C, I, H, Update<K, V>, N>;
+
+/// Type alias for the unordered changeset.
+pub type Changeset<E, C, K, V, I, H, const N: usize> =
+    crate::qmdb::current::db::CurrentChangeset<E, C, I, H, Update<K, V>, N>;
+
+// write_batch for the unordered current batch.
+impl<
+        E: Storage + Clock + Metrics,
+        C: Mutable<Item = Operation<K, V>>,
+        K: Array,
+        V: ValueEncoding,
+        I: UnorderedIndex<Value = Location>,
+        H: Hasher,
+        const N: usize,
+    > Batch<E, C, K, V, I, H, N>
+where
+    Operation<K, V>: Codec,
+    V::Value: Send + Sync,
+{
+    /// Writes a batch of key-value pairs into this batch.
+    ///
+    /// For each item in the iterator:
+    /// - `(key, Some(value))` updates or creates the key with the given value
+    /// - `(key, None)` deletes the key
+    pub async fn write_batch(
+        &mut self,
+        iter: impl IntoIterator<Item = (K, Option<V::Value>)>,
+    ) -> Result<(), Error> {
+        self.db.write_batch(iter).await
+    }
+}
+
 // Functionality for the Mutable state.
 impl<
         E: Storage + Clock + Metrics,
