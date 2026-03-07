@@ -1,0 +1,27 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  background-color: white;
+  color: black;
+  font-family: monospace;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+}
+
+#root {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 10px 10px 0 10px;
+}
+
+a {
+  color: -webkit-link;
+}
