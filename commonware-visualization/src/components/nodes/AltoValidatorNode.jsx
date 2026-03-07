@@ -137,7 +137,7 @@ export default function AltoValidatorNode({
             {expanded && (
               <text
                 x={dotX}
-                y={dotY + 18}
+                y={dotY + (modHighlighted ? 20 : 18)}
                 textAnchor="middle"
                 dominantBaseline="middle"
                 fill="#444"

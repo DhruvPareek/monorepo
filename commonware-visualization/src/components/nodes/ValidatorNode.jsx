@@ -128,7 +128,7 @@ export default function ValidatorNode({
             {expanded && (
               <text
                 x={dotX}
-                y={dotY + 31}
+                y={dotY + (modHighlighted ? 36 : 31)}
                 textAnchor="middle"
                 dominantBaseline="middle"
                 fill="#444"

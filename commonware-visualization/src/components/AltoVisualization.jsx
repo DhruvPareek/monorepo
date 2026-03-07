@@ -137,6 +137,7 @@ function AltoNodeDetailModal({
               dimmed={false}
               highlightModule={highlightModule}
               onModuleClick={onModuleClick}
+              onClick={() => onModuleClick?.(null)}
               variant="expanded"
             />
           )}
