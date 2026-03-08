@@ -697,9 +697,7 @@ export default function FloodVisualization() {
       </svg>
 
       <p className="viz-hint">
-        Hover nodes for role details, click a peer to inspect its internals,
-        and click modules to highlight how Flood composes the Commonware
-        networking stack.
+        Click on a peer, module, or flood phase to learn more.
       </p>
 
       <FloodTooltip info={tooltip} position={mousePos} />

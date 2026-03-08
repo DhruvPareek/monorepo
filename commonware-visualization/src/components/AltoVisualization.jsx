@@ -780,8 +780,7 @@ export default function AltoVisualization() {
       </div>
 
       <p className="viz-hint">
-        Click a node or module to inspect Commonware subsystems and external
-        transport boundaries
+        Click a node, module, or channel mode to learn more.
       </p>
 
       <AltoTooltip info={tooltip} position={mousePos} />
