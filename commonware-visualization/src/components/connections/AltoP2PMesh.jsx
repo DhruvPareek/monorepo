@@ -1,6 +1,5 @@
 import ConnectionPipeline from './ConnectionPipeline';
 import { P2P_MESH_MODULES } from '../../data/alto/layout';
-import { P2P_PIPELINE } from '../../data/alto/pipelines';
 import { ALTO_MODULES } from '../../data/alto/modules';
 
 function pairs(validators) {
@@ -15,6 +14,9 @@ function pairs(validators) {
 
 export default function AltoP2PMesh({
   validators,
+  pipeline,
+  connectionModules,
+  channelKey,
   highlightModule,
   highlightNode,
   phase,
@@ -44,9 +46,16 @@ export default function AltoP2PMesh({
         const showPipeline = idx === 0;
 
         const isLeaderEdge = a.id === leaderV.id || b.id === leaderV.id;
-        const showProposeParticle = phase === 'PROPOSE' && isLeaderEdge;
+        const showBlockParticle =
+          channelKey === 'blocks' && phase === 'PROPOSE' && isLeaderEdge;
         const showVoteParticle =
-          (phase === 'NOTARIZE' || phase === 'FINALIZE') && idx < 5;
+          (channelKey === 'votes' || channelKey === 'certs') &&
+          (phase === 'NOTARIZE' || phase === 'FINALIZE') &&
+          idx < 5;
+        const showMarshalParticle =
+          channelKey === 'marshal' && phase === 'FINALIZE' && idx < 5;
+        const compactModules =
+          connectionModules?.length ? connectionModules : P2P_MESH_MODULES;
 
         return (
           <g key={`mesh-${a.id}-${b.id}`}>
@@ -76,19 +85,21 @@ export default function AltoP2PMesh({
                 y1={a.y}
                 x2={b.x}
                 y2={b.y}
-                pipeline={P2P_PIPELINE}
+                pipeline={pipeline}
                 modules={ALTO_MODULES}
                 highlightModule={highlightModule}
                 dimLine={dimLine}
                 onStageHover={onStageHover}
                 onModuleClick={onModuleClick}
+                startT={0.25}
+                endT={0.75}
                 chipScale={chipScale}
               />
             )}
             {!showPipeline &&
-              P2P_MESH_MODULES.map((mod, mi) => {
+              compactModules.map((mod, mi) => {
                 const perpAngle = ((angle + 90) * Math.PI) / 180;
-                const offset = (mi - 1) * 10;
+                const offset = (mi - (compactModules.length - 1) / 2) * 8;
                 const ox = offset * Math.cos(perpAngle);
                 const oy = offset * Math.sin(perpAngle);
                 const modDimmed = highlightModule && highlightModule !== mod;
@@ -108,8 +119,8 @@ export default function AltoP2PMesh({
                   />
                 );
               })}
-            {showProposeParticle && (
-              <circle r={3.4} fill="#7B1FA2" opacity={0.8}>
+            {showBlockParticle && (
+              <circle r={3.8} fill="#E65100" opacity={0.82}>
                 <animateMotion
                   dur={`${0.8 + (idx % 3) * 0.2}s`}
                   repeatCount="indefinite"
@@ -122,11 +133,20 @@ export default function AltoP2PMesh({
               </circle>
             )}
             {showVoteParticle && (
-              <circle r={2.9} fill="#7B1FA2" opacity={0.6}>
+              <circle r={2.9} fill="#7B1FA2" opacity={0.68}>
                 <animateMotion
                   dur={`${0.7 + idx * 0.15}s`}
                   repeatCount="indefinite"
                   path={`M${a.x},${a.y} L${b.x},${b.y}`}
+                />
+              </circle>
+            )}
+            {showMarshalParticle && (
+              <circle r={3.1} fill="#546E7A" opacity={0.72}>
+                <animateMotion
+                  dur={`${0.9 + idx * 0.12}s`}
+                  repeatCount="indefinite"
+                  path={`M${b.x},${b.y} L${a.x},${a.y}`}
                 />
               </circle>
             )}

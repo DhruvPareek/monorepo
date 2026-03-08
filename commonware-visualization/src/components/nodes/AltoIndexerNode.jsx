@@ -24,16 +24,21 @@ export default function AltoIndexerNode({
   variant = 'compact',
 }) {
   const expanded = variant === 'expanded';
-  const r = expanded ? 110 : 40;
+  const r = expanded ? 130 : 40;
   const opacity = dimmed ? 0.2 : 1;
-  const rowY = y + (expanded ? 28 : 11);
-  const xStep = expanded ? 96 : 24;
-  const rectWidth = expanded ? 72 : 18;
+  const rowY = y + (expanded ? 18 : 11);
+  const xStep = expanded ? 62 : 20;
+  const rectWidth = expanded ? 50 : 16;
   const rectHeight = expanded ? 34 : 12;
-  const chipTextSize = expanded ? 11 : 6;
+  const chipTextSize = expanded ? 9 : 5.5;
   const chipLabelSize = expanded ? 10 : 0;
   const titleSize = expanded ? 26 : 12;
   const allowModuleClick = expanded;
+  const CHIP_TEXT = {
+    codec: 'CD',
+    cryptography: 'CR',
+    parallel: 'PL',
+  };
 
   return (
     <g
@@ -80,7 +85,7 @@ export default function AltoIndexerNode({
       />
       <text
         x={x}
-        y={y - (expanded ? 22 : 8)}
+        y={y - (expanded ? 42 : 8)}
         textAnchor="middle"
         dominantBaseline="middle"
         fill="black"
@@ -92,8 +97,9 @@ export default function AltoIndexerNode({
       </text>
       {INDEXER_INTERNAL.map((item, i) => {
         const mod = ALTO_MODULES[item.module];
-        const dotX = x - xStep / 2 + i * xStep;
-        const dotY = rowY;
+        const dotX = x + (i - (INDEXER_INTERNAL.length - 1) / 2) * xStep;
+        const staggerOffset = i === 1 ? (expanded ? 40 : 10) : 0;
+        const dotY = rowY + staggerOffset;
         const modHighlighted = highlightModule === item.module;
         const modDimmed = highlightModule && highlightModule !== item.module;
         return (
@@ -134,7 +140,7 @@ export default function AltoIndexerNode({
               fontFamily="monospace"
               fontWeight={600}
             >
-              {item.label === 'BLS verify' ? 'BLS' : 'RT'}
+              {CHIP_TEXT[item.module]}
             </text>
             {expanded && (
               <text

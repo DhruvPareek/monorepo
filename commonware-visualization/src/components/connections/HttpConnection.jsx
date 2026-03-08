@@ -7,6 +7,7 @@ export default function HttpConnection({
   x2,
   y2,
   pipeline,
+  modules,
   connectionModules,
   highlightModule,
   highlightNode,
@@ -20,6 +21,7 @@ export default function HttpConnection({
   onModuleClick,
   chipScale = 1,
 }) {
+  const moduleMap = modules || ALTO_MODULES;
   const mx = (x1 + x2) / 2;
   const my = (y1 + y2) / 2;
   const angle = (Math.atan2(y2 - y1, x2 - x1) * 180) / Math.PI;
@@ -56,7 +58,7 @@ export default function HttpConnection({
           x2={x2}
           y2={y2}
           pipeline={pipeline}
-          modules={ALTO_MODULES}
+          modules={moduleMap}
           highlightModule={highlightModule}
           dimLine={dimLine}
           onStageHover={onStageHover}
@@ -78,7 +80,7 @@ export default function HttpConnection({
               cx={mx + ox}
               cy={my + oy}
               r={3}
-              fill={modDimmed ? '#eee' : ALTO_MODULES[mod].color}
+              fill={modDimmed ? '#eee' : moduleMap[mod].color}
               opacity={modDimmed ? 0.2 : 0.5}
               style={{ transition: 'opacity 0.3s', cursor: 'pointer' }}
               onClick={(e) => {

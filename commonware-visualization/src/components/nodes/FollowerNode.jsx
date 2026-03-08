@@ -2,10 +2,23 @@ import { ALTO_MODULES } from '../../data/alto/modules';
 import { FOLLOWER_INTERNAL } from '../../data/alto/pipelines';
 
 const LETTERS = {
+  consensus: 'C',
   storage: 'S',
   parallel: 'P',
   resolver: 'R',
+  broadcast: 'B',
+  cryptography: 'CR',
   runtime: 'RT',
+};
+
+const EXPANDED_LABELS = {
+  consensus: ['consensus'],
+  storage: ['storage'],
+  parallel: ['parallel'],
+  resolver: ['resolver'],
+  broadcast: ['broadcast'],
+  cryptography: ['crypto', 'graphy'],
+  runtime: ['runtime'],
 };
 
 export default function FollowerNode({
@@ -22,16 +35,14 @@ export default function FollowerNode({
   variant = 'compact',
 }) {
   const expanded = variant === 'expanded';
-  const w = expanded ? 260 : 124;
-  const h = expanded ? 150 : 70;
+  const w = expanded ? 360 : 168;
+  const h = expanded ? 212 : 82;
   const opacity = dimmed ? 0.2 : 1;
-  const moduleGap = expanded ? 58 : 22;
-  const moduleY = y + (expanded ? 25 : 11);
   const moduleRadius = expanded ? 16 : 4.5;
-  const titleY = y - (expanded ? 38 : 16);
+  const titleY = y - (expanded ? 52 : 16);
   const titleSize = expanded ? 24 : 12;
   const chipTextSize = expanded ? 10 : 5;
-  const chipLabelSize = expanded ? 10 : 0;
+  const chipLabelSize = expanded ? 8.5 : 0;
   const allowModuleClick = expanded;
 
   return (
@@ -86,9 +97,13 @@ export default function FollowerNode({
       </text>
       {FOLLOWER_INTERNAL.map((item, i) => {
         const mod = ALTO_MODULES[item.module];
-        const n = FOLLOWER_INTERNAL.length;
-        const dotX = x + (i - (n - 1) / 2) * moduleGap;
-        const dotY = moduleY;
+        const topCount = 3;
+        const isTopRow = i < topCount;
+        const rowIndex = isTopRow ? i : i - topCount;
+        const rowCount = isTopRow ? topCount : FOLLOWER_INTERNAL.length - topCount;
+        const xStep = expanded ? (isTopRow ? 86 : 68) : isTopRow ? 18 : 16;
+        const dotX = x + (rowIndex - (rowCount - 1) / 2) * xStep;
+        const dotY = y + (expanded ? (isTopRow ? -14 : 58) : isTopRow ? 6 : 20);
         const modHighlighted = highlightModule === item.module;
         const modDimmed = highlightModule && highlightModule !== item.module;
         return (
@@ -132,15 +147,18 @@ export default function FollowerNode({
             {expanded && (
               <text
                 x={dotX}
-                y={dotY + 30}
+                y={dotY + (isTopRow ? 28 : 24)}
                 textAnchor="middle"
-                dominantBaseline="middle"
                 fill="#444"
                 fontSize={chipLabelSize}
                 fontFamily="monospace"
                 fontWeight={600}
               >
-                {mod.name}
+                {EXPANDED_LABELS[item.module].map((line, idx) => (
+                  <tspan key={line} x={dotX} dy={idx === 0 ? 0 : 8}>
+                    {line}
+                  </tspan>
+                ))}
               </text>
             )}
           </g>

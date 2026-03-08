@@ -47,7 +47,7 @@ export const SYNC_MODULES = {
   cryptography: {
     name: 'cryptography',
     color: '#C62828',
-    short: 'SHA-256 Merkle proofs',
+    short: 'SHA-256 Merkle proofs',  
     detail:
       'SHA-256 hashing for QMDB Merkle tree construction. Proofs verify that fetched operation batches are consistent with the server\'s root. Also used to deterministically generate test operations.',
   },

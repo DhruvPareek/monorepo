@@ -5,8 +5,9 @@ const CHIP_TEXT = {
   consensus: 'CS',
   storage: 'ST',
   broadcast: 'BF',
-  parallel: 'PL',
+  p2p: 'P2',
   resolver: 'RS',
+  runtime: 'RT',
 };
 
 export default function AltoValidatorNode({
@@ -25,8 +26,6 @@ export default function AltoValidatorNode({
   const opacity = dimmed ? 0.2 : 1;
   const expanded = variant === 'expanded';
   const radius = expanded ? 106 : 38;
-  const moduleGap = expanded ? 54 : 14;
-  const moduleY = y + (expanded ? 28 : 14);
   const moduleRadius = expanded ? 14 : 5;
   const titleY = y - (expanded ? 34 : 10);
   const labelSize = expanded ? 23 : 14;
@@ -87,13 +86,13 @@ export default function AltoValidatorNode({
       </text>
       {VALIDATOR_INTERNAL.map((item, i) => {
         const mod = ALTO_MODULES[item.module];
-        const n = VALIDATOR_INTERNAL.length;
-        const dotX = expanded
-          ? i <= 2
-            ? x + (i - 1) * 56
-            : x + (i === 3 ? -34 : 34)
-          : x + (i - (n - 1) / 2) * moduleGap;
-        const dotY = expanded ? (i <= 2 ? y + 4 : y + 58) : moduleY;
+        const cols = 3;
+        const row = Math.floor(i / cols);
+        const col = i % cols;
+        const expandedXStep = 52;
+        const compactXStep = 12;
+        const dotX = x + (col - 1) * (expanded ? expandedXStep : compactXStep);
+        const dotY = y + (expanded ? (row === 0 ? 4 : 58) : row === 0 ? 8 : 20);
         const modHighlighted = highlightModule === item.module;
         const modDimmed = highlightModule && highlightModule !== item.module;
         return (

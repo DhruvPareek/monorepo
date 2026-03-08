@@ -2,9 +2,9 @@ export const ALTO_MODULES = {
   consensus: {
     name: 'consensus',
     color: '#7B1FA2',
-    short: 'BFT via Simplex',
+    short: 'Simplex + marshal',
     detail:
-      'simplex::Engine with VRF-based leader election. Validators propose and vote on block digests. BLS12-381 threshold signatures (3-of-5). Notarization requires 2f+1 votes, followed by finalization.',
+      'commonware-consensus is used through simplex::Engine for BFT votes and certificates and through marshal::Actor for pairing certificates with blocks, finalized-chain ingestion, subscriptions, and repair/backfill.',
   },
   p2p: {
     name: 'p2p',
@@ -23,44 +23,44 @@ export const ALTO_MODULES = {
   broadcast: {
     name: 'broadcast',
     color: '#E65100',
-    short: 'Message buffering',
+    short: 'Block dissemination',
     detail:
-      "buffered::Engine buffers out-of-order consensus messages with priority. Sits between P2P transport and the consensus engine, ensuring messages aren't dropped if the node isn't ready.",
+      'buffered::Engine disseminates full block bodies over the broadcaster channel and provides the in-memory block buffer/mailbox that marshal integrates with. In follower mode, Alto still uses the broadcast buffer because marshal needs its local mailbox interface, but the network side is disabled by wiring it to no-op sender/receiver objects.',
   },
   storage: {
     name: 'storage',
     color: '#795548',
     short: 'Finalized chain persistence',
     detail:
-      'Two immutable archives: finalizations-by-height and finalized-blocks. zstd level 3 compression. Page cache: 4KB pages, 32MB capacity. Enables crash recovery without violating safety.',
+      'Finalized blocks and certificates persist in archive storage. Validators restore immutable finalized archives; followers use immutable or prunable archives depending on pruning_depth.',
   },
   codec: {
     name: 'codec',
     color: '#455A64',
     short: 'Binary serialization',
     detail:
-      'commonware-codec Encode/Decode for all wire and storage formats. Block, Seed, Notarization, Finalization all use binary encoding with varint compression.',
+      'commonware-codec encodes Alto artifacts at P2P, HTTP, WebSocket, and storage boundaries. Some fields use compact encodings, but the visualization does not assume one uniform wire-format rule for everything.',
   },
   parallel: {
     name: 'parallel',
     color: '#283593',
     short: 'Sig verification',
     detail:
-      'BLS12-381 signature verification via commonware-parallel. Validators use thread pools for parallel verification. Indexer and follower use Sequential strategy.',
+      'Validators verify threshold signatures in parallel. The indexer uses Sequential. The follower does some verification sequentially and uses parallel workers for heavier background sync verification.',
   },
   runtime: {
     name: 'runtime',
     color: '#2E7D32',
     short: 'Async foundation',
     detail:
-      'Tokio-based async executor. Task spawning, TCP networking, storage I/O, buffer primitives, rate limiting, and metrics. All other modules depend on this.',
+      'Tokio-based async executor. Task spawning, TCP networking, storage I/O, buffer primitives, rate limiting, and metrics. All modules depend on this.',
   },
   resolver: {
     name: 'resolver',
-    color: '#6A1B9A',
-    short: 'Certificate backfill',
+    color: '#AD1457',
+    short: 'Repair and backfill',
     detail:
-      'Resolves missing certificates and blocks when a node falls behind. Validators use P2P-based resolution; follower uses HTTP fetching from indexer.',
+      'Repairs missing data. Validators use simplex resolver traffic for certificate repair by view and marshal-driven repair/backfill for missing blocks or certificate-plus-block bundles. The follower translates repair requests into HTTP fetches against the indexer.',
   },
 };
 

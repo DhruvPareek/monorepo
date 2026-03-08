@@ -3,11 +3,13 @@ import './App.css';
 import BridgeVisualization from './components/BridgeVisualization';
 import SyncVisualization from './components/SyncVisualization';
 import AltoVisualization from './components/AltoVisualization';
+import FloodVisualization from './components/FloodVisualization';
 
 const EXAMPLES = [
-  { id: 'bridge', label: 'bridge' },
-  { id: 'sync', label: 'sync' },
   { id: 'alto', label: 'alto' },
+  { id: 'bridge', label: 'bridge' },
+  { id: 'flood', label: 'flood' },
+  { id: 'sync', label: 'sync' },
 ];
 
 // Animated ASCII logo matching commonware.xyz
@@ -79,7 +81,14 @@ function useAnimatedSymbols(initial, types) {
 }
 
 function App() {
-  const [activeExample, setActiveExample] = useState('bridge');
+  const [activeExample, setActiveExample] = useState(() => {
+    const saved = localStorage.getItem('commonware-viz-example');
+    return EXAMPLES.some((ex) => ex.id === saved) ? saved : 'alto';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('commonware-viz-example', activeExample);
+  }, [activeExample]);
 
   return (
     <div>
@@ -98,6 +107,7 @@ function App() {
       {activeExample === 'bridge' && <BridgeVisualization />}
       {activeExample === 'sync' && <SyncVisualization />}
       {activeExample === 'alto' && <AltoVisualization />}
+      {activeExample === 'flood' && <FloodVisualization />}
     </div>
   );
 }

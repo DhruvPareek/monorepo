@@ -28,6 +28,10 @@ export const VALIDATORS = PENTAGON.map((d, i) => ({
   y: CLUSTER.cy + d.dy,
 }));
 
+// Only configured validators publish artifacts to the indexer.
+// Local Alto deploys commonly use the first validator; remote deploys use a subset.
+export const INDEXER_UPLOADERS = [VALIDATORS[0].id];
+
 // Indexer position
 export const INDEXER = { x: 920, y: 180 };
 
@@ -35,22 +39,33 @@ export const INDEXER = { x: 920, y: 180 };
 export const FOLLOWER = { x: 920, y: 525 };
 
 // Modules present on each connection type (for compact dot display)
-export const P2P_MESH_MODULES = ['broadcast', 'cryptography', 'p2p'];
-export const HTTP_PUSH_MODULES = ['codec', 'runtime'];
-export const SYNC_CONNECTION_MODULES = ['codec', 'runtime'];
+export const P2P_MESH_MODULES = [
+  'consensus',
+  'broadcast',
+  'resolver',
+  'cryptography',
+  'p2p',
+];
+export const UPLOAD_CONNECTION_MODULES = ['codec', 'cryptography'];
+export const WS_CONNECTION_MODULES = ['codec'];
+export const HTTP_REPAIR_CONNECTION_MODULES = ['resolver', 'codec'];
 
 // Modules inside each node type (for highlight matching)
 export const VALIDATOR_MODULES = [
   'consensus',
   'storage',
   'broadcast',
-  'parallel',
+  'p2p',
   'resolver',
+  'runtime',
 ];
-export const INDEXER_INTERNAL_MODULES = ['parallel', 'runtime'];
+export const INDEXER_INTERNAL_MODULES = ['codec', 'cryptography', 'parallel'];
 export const FOLLOWER_INTERNAL_MODULES = [
+  'consensus',
   'storage',
   'parallel',
   'resolver',
+  'broadcast',
+  'cryptography',
   'runtime',
 ];
