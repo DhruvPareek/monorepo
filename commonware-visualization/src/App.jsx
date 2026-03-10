@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import './App.css';
 import BridgeVisualization from './components/BridgeVisualization';
+import ChatVisualization from './components/ChatVisualization';
 import SyncVisualization from './components/SyncVisualization';
 import AltoVisualization from './components/AltoVisualization';
 import FloodVisualization from './components/FloodVisualization';
@@ -8,6 +9,7 @@ import FloodVisualization from './components/FloodVisualization';
 const EXAMPLES = [
   { id: 'alto', label: 'alto' },
   { id: 'bridge', label: 'bridge' },
+  { id: 'chat', label: 'chat' },
   { id: 'flood', label: 'flood' },
   { id: 'sync', label: 'sync' },
 ];
@@ -105,6 +107,7 @@ function App() {
         ))}
       </nav>
       {activeExample === 'bridge' && <BridgeVisualization />}
+      {activeExample === 'chat' && <ChatVisualization />}
       {activeExample === 'sync' && <SyncVisualization />}
       {activeExample === 'alto' && <AltoVisualization />}
       {activeExample === 'flood' && <FloodVisualization />}
