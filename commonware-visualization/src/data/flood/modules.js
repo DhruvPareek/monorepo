@@ -39,7 +39,7 @@ export const FLOOD_MODULES = {
     color: '#6D4C41',
     short: 'AWS provisioning',
     detail:
-      'commonware-deployer generates hosts.yaml and per-peer configs, selects bootstrapper identities, provisions EC2 instances, and stands up the monitoring stack.',
+      'commonware-deployer consumes the setup artifacts, uploads binaries and configs, generates hosts.yaml, provisions EC2 instances, and stands up the monitoring stack.',
   },
 };
 

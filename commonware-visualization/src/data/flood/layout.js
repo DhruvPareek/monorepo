@@ -27,11 +27,11 @@ export const PEERS = PENTAGON.map((offset, i) => ({
 
 export const BOOTSTRAPPERS = [PEERS[0].id, PEERS[1].id];
 
-export const SETUP = { x: 120, y: 145, width: 160, height: 84 };
+export const SETUP = { x: 120, y: 145, width: 220, height: 84 };
 export const MONITORING = { x: 930, y: 320, width: 188, height: 126 };
 export const SETUP_OUTPUT = { x: 895, y: 180, width: 220, height: 96 };
 
-export const PROVISION_SETUP = { x: 410, y: 118, width: 180, height: 88 };
+export const PROVISION_SETUP = { x: 410, y: 118, width: 220, height: 88 };
 export const PROVISION_PEER_CLUSTER = {
   label: 'Peer config files',
   cx: 420,
@@ -47,16 +47,11 @@ export const PROVISION_PEERS = [
   { id: 'P5', label: 'P5', x: 660, y: 340 },
 ];
 
-export const DISCOVERY_CONNECTION_MODULES = [
-  'cryptography',
-  'codec',
-  'p2p',
-  'stream',
-];
+export const DISCOVERY_CONNECTION_MODULES = ['codec', 'p2p', 'stream'];
 
 export const FLOOD_CONNECTION_MODULES = ['codec', 'p2p', 'stream'];
-export const PROVISIONING_CONNECTION_MODULES = ['cryptography', 'codec'];
-export const SETUP_OUTPUT_CONNECTION_MODULES = ['deployer'];
+export const PROVISIONING_CONNECTION_MODULES = [];
+export const SETUP_OUTPUT_CONNECTION_MODULES = [];
 export const TELEMETRY_CONNECTION_MODULES = ['runtime'];
 
 export const PEER_MODULES = [

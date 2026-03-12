@@ -22,16 +22,18 @@ export default function HttpConnection({
   chipScale = 1,
 }) {
   const moduleMap = modules || ALTO_MODULES;
+  const activeConnectionModules = connectionModules || [];
   const mx = (x1 + x2) / 2;
   const my = (y1 + y2) / 2;
   const angle = (Math.atan2(y2 - y1, x2 - x1) * 180) / Math.PI;
 
   const nodeHighlight =
     highlightNode && (highlightNode === sourceId || highlightNode === destId);
+  const hasConnectionModules = activeConnectionModules.length > 0;
   const anyModuleHighlight =
-    highlightModule && connectionModules.includes(highlightModule);
+    hasConnectionModules && highlightModule && activeConnectionModules.includes(highlightModule);
   const dimLine =
-    (highlightModule && !anyModuleHighlight) ||
+    (hasConnectionModules && highlightModule && !anyModuleHighlight) ||
     (highlightNode && !nodeHighlight);
 
   const px1 = particleReverse ? x2 : x1;
@@ -67,9 +69,9 @@ export default function HttpConnection({
         />
       )}
       {!showPipeline &&
-        connectionModules.map((mod, mi) => {
+        activeConnectionModules.map((mod, mi) => {
           const perpAngle = ((angle + 90) * Math.PI) / 180;
-          const n = connectionModules.length;
+          const n = activeConnectionModules.length;
           const offset = (mi - (n - 1) / 2) * 10;
           const ox = offset * Math.cos(perpAngle);
           const oy = offset * Math.sin(perpAngle);

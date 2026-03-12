@@ -41,16 +41,10 @@ const VIEW_MODES = [
       'setup.rs parses CLI input, generates peer identities, selects bootstrappers, builds per-peer Flood configs and one deployer config, then writes YAML files and copies dashboard.json locally.',
   },
   {
-    key: 'discovery',
-    label: 'Discovery',
+    key: 'network',
+    label: 'Discovery / Flood',
     detail:
-      'Peers gossip BitVec and signed Info records over authenticated discovery to find and maintain dialable peers.',
-  },
-  {
-    key: 'flood',
-    label: 'Flood',
-    detail:
-      'Each peer continuously sends timestamped random Data messages on channel 0 to all currently connected peers.',
+      'This shows two distinct phases: during DISCOVER, peers gossip BitVec and signed Info records to find and maintain  peers; during FLOOD, those connected peers exchange random messages on a channel.',
   },
   {
     key: 'telemetry',
@@ -179,7 +173,7 @@ function FloodNodeDetailModal({
 
 export default function FloodVisualization() {
   const { phase, phaseProgress, wave } = useFloodAnimation();
-  const [viewMode, setViewMode] = useState('discovery');
+  const [viewMode, setViewMode] = useState('provision');
   const [highlightModule, setHighlightModule] = useState(null);
   const [highlightNode, setHighlightNode] = useState(null);
   const [expandedNode, setExpandedNode] = useState(null);
@@ -420,19 +414,19 @@ export default function FloodVisualization() {
           />
         )}
 
-        {(viewMode === 'discovery' || viewMode === 'flood') && (
+        {viewMode === 'network' && (
           <FloodPeerMesh
             peers={activePeers}
             bootstrappers={BOOTSTRAPPERS}
             pipeline={
-              viewMode === 'discovery' ? DISCOVERY_PIPELINE : FLOOD_PIPELINE
+              phase === 'DISCOVER' ? DISCOVERY_PIPELINE : FLOOD_PIPELINE
             }
             connectionModules={
-              viewMode === 'discovery'
+              phase === 'DISCOVER'
                 ? DISCOVERY_CONNECTION_MODULES
                 : FLOOD_CONNECTION_MODULES
             }
-            mode={viewMode}
+            mode={phase === 'DISCOVER' ? 'discovery' : 'flood'}
             phase={phase}
             highlightModule={highlightModule}
             highlightNode={highlightNode}
@@ -539,8 +533,8 @@ export default function FloodVisualization() {
                 key={peer.id}
                 peer={peer}
                 isBootstrapper={BOOTSTRAPPERS.includes(peer.id)}
-                pulsing={viewMode === 'discovery' && phase === 'DISCOVER'}
-                bootstrapperActive={viewMode === 'discovery'}
+                pulsing={viewMode === 'network' && phase === 'DISCOVER'}
+                bootstrapperActive={viewMode === 'network'}
                 highlighted={highlightNode === peer.id}
                 dimmed={highlightNode && highlightNode !== peer.id}
                 highlightModule={highlightModule}

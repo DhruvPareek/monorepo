@@ -87,10 +87,18 @@ function App() {
     const saved = localStorage.getItem('commonware-viz-example');
     return EXAMPLES.some((ex) => ex.id === saved) ? saved : 'alto';
   });
+  const [exampleRenderKey, setExampleRenderKey] = useState(0);
 
   useEffect(() => {
     localStorage.setItem('commonware-viz-example', activeExample);
   }, [activeExample]);
+
+  const openExample = (exampleId) => {
+    setActiveExample(exampleId);
+    setExampleRenderKey((current) => current + 1);
+  };
+
+  const activeVisualizationKey = `${activeExample}-${exampleRenderKey}`;
 
   return (
     <div>
@@ -100,17 +108,17 @@ function App() {
           <button
             key={ex.id}
             className={`example-tab ${activeExample === ex.id ? 'example-tab--active' : ''}`}
-            onClick={() => setActiveExample(ex.id)}
+            onClick={() => openExample(ex.id)}
           >
             {ex.label}
           </button>
         ))}
       </nav>
-      {activeExample === 'bridge' && <BridgeVisualization />}
-      {activeExample === 'chat' && <ChatVisualization />}
-      {activeExample === 'sync' && <SyncVisualization />}
-      {activeExample === 'alto' && <AltoVisualization />}
-      {activeExample === 'flood' && <FloodVisualization />}
+      {activeExample === 'bridge' && <BridgeVisualization key={activeVisualizationKey} />}
+      {activeExample === 'chat' && <ChatVisualization key={activeVisualizationKey} />}
+      {activeExample === 'sync' && <SyncVisualization key={activeVisualizationKey} />}
+      {activeExample === 'alto' && <AltoVisualization key={activeVisualizationKey} />}
+      {activeExample === 'flood' && <FloodVisualization key={activeVisualizationKey} />}
     </div>
   );
 }
