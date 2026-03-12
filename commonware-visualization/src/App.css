@@ -81,6 +81,30 @@
   margin-bottom: 8px;
 }
 
+.legend-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.legend-header::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, #bdbdbd 0%, #ececec 100%);
+}
+
+.legend-header-label {
+  font-size: 0.76em;
+  color: #6d6d6d;
+  text-decoration: underline;
+  text-decoration-color: #b7b7b7;
+  text-underline-offset: 0.18em;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
 .channel-selectors-row {
   display: flex;
   gap: 24px;

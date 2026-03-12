@@ -3,6 +3,9 @@ export default function Legend({ modules, activeModule, onSelect }) {
 
   return (
     <div className="legend" onClick={(e) => e.stopPropagation()}>
+      <div className="legend-header" aria-hidden="true">
+        <span className="legend-header-label">commonware modules</span>
+      </div>
       <div className="legend-items">
         {modules.map((mod) => {
           const isActive = activeModule === mod.name;
