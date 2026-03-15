@@ -702,6 +702,10 @@ export default function FloodVisualization() {
         onModuleClick={setHighlightModule}
         onClose={() => setExpandedNode(null)}
       />
+      <div className="viz-footer">
+        <a href="https://github.com/DhruvPareek/monorepo/tree/feat/visualization-work/commonware-visualization">GitHub</a>
+        <a href="https://commonware.xyz">commonware.xyz</a>
+      </div>
     </div>
   );
 }

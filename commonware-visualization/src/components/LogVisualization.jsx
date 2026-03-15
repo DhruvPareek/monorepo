@@ -21,7 +21,7 @@ const CHANNEL_MODES = [
     key: 'votes',
     label: 'Votes',
     detail:
-      'Channel 0 carries Notarize, Nullify, and Finalize votes. The app-defined proposal is piggybacked inside the leader’s first Notarize vote, but only actual Commonware modules are colored in the lane.',
+      'Channel 0 carries Notarize, Nullify, and Finalize votes.',
     pipeline: VOTE_PIPELINE,
     connectionModules: ['consensus', 'cryptography', 'p2p'],
   },
@@ -59,7 +59,7 @@ function LogTooltip({ info, position }) {
     body =
       id === 'P0'
         ? 'Bootstrap participant. It is only special for initial discovery; after the mesh forms, it is a normal validator running the same application actor, Simplex engine, journal, reporter, and local TUI as every other node.'
-        : 'Participant node. It derives an Ed25519 identity from `--me`, joins peer set 0, runs the example application actor plus Simplex voter/batcher/resolver, persists consensus state locally, and may become leader for some views.';
+        : 'Participant node. It derives an Ed25519 identity, joins peer set 0, runs the example application actor plus Simplex voter/batcher/resolver, persists consensus state locally, and may become leader for some views.';
   }
 
   if (!title) return null;
@@ -379,6 +379,10 @@ export default function LogVisualization() {
         onModuleClick={setHighlightModule}
         onClose={() => setExpandedNode(null)}
       />
+      <div className="viz-footer">
+        <a href="https://github.com/DhruvPareek/monorepo/tree/feat/visualization-work/commonware-visualization">GitHub</a>
+        <a href="https://commonware.xyz">commonware.xyz</a>
+      </div>
     </div>
   );
 }
