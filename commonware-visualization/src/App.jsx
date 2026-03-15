@@ -5,12 +5,14 @@ import ChatVisualization from './components/ChatVisualization';
 import SyncVisualization from './components/SyncVisualization';
 import AltoVisualization from './components/AltoVisualization';
 import FloodVisualization from './components/FloodVisualization';
+import LogVisualization from './components/LogVisualization';
 
 const EXAMPLES = [
   { id: 'alto', label: 'alto' },
   { id: 'bridge', label: 'bridge' },
   { id: 'chat', label: 'chat' },
   { id: 'flood', label: 'flood' },
+  { id: 'log', label: 'log' },
   { id: 'sync', label: 'sync' },
 ];
 
@@ -119,6 +121,7 @@ function App() {
       {activeExample === 'sync' && <SyncVisualization key={activeVisualizationKey} />}
       {activeExample === 'alto' && <AltoVisualization key={activeVisualizationKey} />}
       {activeExample === 'flood' && <FloodVisualization key={activeVisualizationKey} />}
+      {activeExample === 'log' && <LogVisualization key={activeVisualizationKey} />}
     </div>
   );
 }

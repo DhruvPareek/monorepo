@@ -1,10 +1,15 @@
-export default function Legend({ modules, activeModule, onSelect }) {
+export default function Legend({
+  modules,
+  activeModule,
+  onSelect,
+  headerLabel = 'commonware modules',
+}) {
   const activeMod = modules.find((m) => m.name === activeModule);
 
   return (
     <div className="legend" onClick={(e) => e.stopPropagation()}>
       <div className="legend-header" aria-hidden="true">
-        <span className="legend-header-label">commonware modules</span>
+        <span className="legend-header-label">{headerLabel}</span>
       </div>
       <div className="legend-items">
         {modules.map((mod) => {
