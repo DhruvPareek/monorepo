@@ -6,6 +6,7 @@ import SyncVisualization from './components/SyncVisualization';
 import AltoVisualization from './components/AltoVisualization';
 import FloodVisualization from './components/FloodVisualization';
 import LogVisualization from './components/LogVisualization';
+import MinimmitVisualization from './components/MinimmitVisualization';
 
 const EXAMPLES = [
   { id: 'alto', label: 'alto' },
@@ -13,6 +14,7 @@ const EXAMPLES = [
   { id: 'chat', label: 'chat' },
   { id: 'flood', label: 'flood' },
   { id: 'log', label: 'log' },
+  { id: 'minimmit', label: 'minimmit' },
   { id: 'sync', label: 'sync' },
 ];
 
@@ -122,6 +124,7 @@ function App() {
       {activeExample === 'alto' && <AltoVisualization key={activeVisualizationKey} />}
       {activeExample === 'flood' && <FloodVisualization key={activeVisualizationKey} />}
       {activeExample === 'log' && <LogVisualization key={activeVisualizationKey} />}
+      {activeExample === 'minimmit' && <MinimmitVisualization key={activeVisualizationKey} />}
     </div>
   );
 }
