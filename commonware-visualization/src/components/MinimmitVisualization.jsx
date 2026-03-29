@@ -534,6 +534,7 @@ const M_STEPS = [
   { id: 1, label: '1. Block A reaches M' },
   { id: 2, label: '2. Honest vs Byzantine' },
   { id: 3, label: '3. Equivocate' },
+  { id: 4, label: '4. Advance to Next View' },
 ];
 
 function MNotarizationScene() {
@@ -545,21 +546,17 @@ function MNotarizationScene() {
   const maxB = honestNotInA + F; // 8
 
   const W = 900;
-  const H = 500;
+  const H = 530;
   const BAR_X = 200;
   const BAR_W = 440;
   const BAR_H = 16;
   const ROW_Y = 140;
   const byzantineSet = new Set([3, 4]);
   const showByzantine = step >= 2;
-  const showBlockB = step >= 3;
+  const showBlockB = step === 3;
+  const showAdvance = step === 4;
 
-  const stepSubtitle = [
-    '',
-    '',
-    '',
-    '',
-  ][step];
+  const stepSubtitle = ['', '', '', '', ''][step];
 
   return (
     <div>
@@ -577,27 +574,38 @@ function MNotarizationScene() {
 
         {/* Legend */}
         <g>
-          <circle cx={170} cy={72} r={6} fill={C.notarized} />
-          <text x={180} y={75} fill={C.text} fontSize={9} fontFamily="monospace">voted A{showByzantine ? ' (honest, locked)' : ''}</text>
-          {showByzantine && (
+          <circle cx={140} cy={72} r={6} fill={C.notarized} />
+          <text x={150} y={75} fill={C.text} fontSize={9} fontFamily="monospace">voted A{showByzantine && !showAdvance ? ' (honest, locked)' : ''}</text>
+          {showByzantine && !showAdvance && (
             <>
-              <circle cx={350} cy={72} r={6} fill={C.nodeIdle} stroke="#dc2626" strokeWidth={1.5} strokeDasharray="3,2" />
-              <text x={360} y={75} fill={C.text} fontSize={9} fontFamily="monospace">Byzantine</text>
+              <circle cx={320} cy={72} r={6} fill={C.nodeIdle} stroke="#dc2626" strokeWidth={1.5} strokeDasharray="3,2" />
+              <text x={330} y={75} fill={C.text} fontSize={9} fontFamily="monospace">Byzantine</text>
             </>
           )}
           {showBlockB && (
             <>
-              <circle cx={470} cy={72} r={6} fill="#0d9488" />
-              <text x={480} y={75} fill={C.text} fontSize={9} fontFamily="monospace">votes B (max possible)</text>
+              <circle cx={440} cy={72} r={6} fill="#0d9488" />
+              <text x={450} y={75} fill={C.text} fontSize={9} fontFamily="monospace">votes B (max possible)</text>
+            </>
+          )}
+          {showAdvance && (
+            <>
+              <circle cx={280} cy={72} r={6} fill={C.finalized} />
+              <text x={290} y={75} fill={C.text} fontSize={9} fontFamily="monospace">finalized</text>
+              <rect x={374} y={66} width={12} height={12} rx={2} fill="white" stroke={C.proposedStroke} strokeWidth={1.5} strokeDasharray="3,2" />
+              <text x={394} y={75} fill={C.text} fontSize={9} fontFamily="monospace">new proposal</text>
             </>
           )}
         </g>
 
-        {/* Validator row */}
-        <text x={30} y={ROW_Y - 34} fill={C.muted} fontSize={10} fontFamily="monospace">validators (view v)</text>
-        <line x1={30} y1={ROW_Y - 29} x2={W - 30} y2={ROW_Y - 29} stroke="#eee" strokeWidth={1} />
-
-        {Array.from({ length: N }, (_, i) => {
+        {/* Validator row (steps 1-3) */}
+        {!showAdvance && (
+          <>
+            <text x={30} y={ROW_Y - 34} fill={C.muted} fontSize={10} fontFamily="monospace">validators (view v)</text>
+            <line x1={30} y1={ROW_Y - 29} x2={W - 30} y2={ROW_Y - 29} stroke="#eee" strokeWidth={1} />
+          </>
+        )}
+        {!showAdvance && Array.from({ length: N }, (_, i) => {
           const x = vx(i);
           const isByz = byzantineSet.has(i);
           const votedA = i < M;
@@ -664,6 +672,53 @@ function MNotarizationScene() {
           );
         })}
 
+        {/* Step 4: Chain diagram showing view advance */}
+        {showAdvance && (() => {
+          const chainY = 130;
+          const bw = 100;
+          const bh = 50;
+          const gap = 40;
+          const startX = (W - 3 * bw - 2 * gap) / 2;
+          const blocks = [
+            { label: 'view v-1', sublabel: 'finalized', fill: C.finalized, stroke: C.finalizedStroke, textFill: '#e2e8f0' },
+            { label: 'view v', sublabel: 'M notarized (A)', fill: C.notarized, stroke: C.notarizedDark, textFill: 'white' },
+            { label: 'view v+1', sublabel: 'new proposal', fill: 'white', stroke: C.proposedStroke, textFill: C.text, dashed: true },
+          ];
+          return (
+            <g>
+              <text x={30} y={chainY - 24} fill={C.muted} fontSize={10} fontFamily="monospace">select_parent:</text>
+              <line x1={30} y1={chainY - 19} x2={W - 30} y2={chainY - 19} stroke="#eee" strokeWidth={1} />
+              {blocks.map((b, idx) => {
+                const bx = startX + idx * (bw + gap);
+                return (
+                  <g key={idx}>
+                    {idx > 0 && (
+                      <line x1={bx - gap} y1={chainY + bh / 2} x2={bx} y2={chainY + bh / 2} stroke={C.dim} strokeWidth={2} />
+                    )}
+                    {idx > 0 && (
+                      <polygon points={`${bx - 4},${chainY + bh / 2 - 4} ${bx},${chainY + bh / 2} ${bx - 4},${chainY + bh / 2 + 4}`} fill={C.dim} />
+                    )}
+                    <rect x={bx} y={chainY} width={bw} height={bh} rx={6} fill={b.fill} stroke={b.stroke} strokeWidth={2} strokeDasharray={b.dashed ? '6,4' : 'none'} />
+                    <text x={bx + bw / 2} y={chainY + bh / 2 - 6} textAnchor="middle" dominantBaseline="middle" fill={b.textFill} fontSize={12} fontFamily="monospace" fontWeight={700}>
+                      {b.label}
+                    </text>
+                    <text x={bx + bw / 2} y={chainY + bh / 2 + 10} textAnchor="middle" dominantBaseline="middle" fill={b.textFill} fontSize={9} fontFamily="monospace" opacity={0.8}>
+                      {b.sublabel}
+                    </text>
+                  </g>
+                );
+              })}
+              {/* Curved arrow from v+1 back to v showing select_parent */}
+              <path d={`M${startX + 2 * (bw + gap) + bw / 2},${chainY + bh + 8} Q${startX + 1.5 * (bw + gap)},${chainY + bh + 40} ${startX + bw + gap + bw / 2},${chainY + bh + 8}`}
+                fill="none" stroke={C.notarized} strokeWidth={1.5} strokeDasharray="4,3" />
+              <polygon points={`${startX + bw + gap + bw / 2 - 4},${chainY + bh + 4} ${startX + bw + gap + bw / 2},${chainY + bh + 8} ${startX + bw + gap + bw / 2 + 4},${chainY + bh + 4}`} fill={C.notarized} />
+              <text x={startX + 1.5 * (bw + gap) + bw / 2} y={chainY + bh + 42} textAnchor="middle" fill={C.notarized} fontSize={9} fontFamily="monospace" fontWeight={600}>
+                select_parent(v+1) = A
+              </text>
+            </g>
+          );
+        })()}
+
 
         {/* Insight text */}
         {step === 1 && (
@@ -681,47 +736,72 @@ function MNotarizationScene() {
             R3 and R4 (Byzantine) equivocate and vote for block B, convincing R5-R10 to also vote B.
           </text>
         )}
-
-        {/* Vote tally section */}
-        <text x={30} y={300} fill={C.muted} fontSize={10} fontFamily="monospace">
-          {showBlockB ? 'can block B be finalized?' : 'vote tallies'}
-        </text>
-        <line x1={30} y1={305} x2={W - 30} y2={305} stroke="#eee" strokeWidth={1} />
-
-        {/* Block A bar */}
-        <text x={BAR_X - 6} y={325 + BAR_H / 2} textAnchor="end" dominantBaseline="middle" fill={C.text} fontSize={10} fontFamily="monospace" fontWeight={600}>block A:</text>
-        <rect x={BAR_X} y={325} width={BAR_W} height={BAR_H} rx={3} fill={C.barBg} />
-        <rect x={BAR_X} y={325} width={(M / N) * BAR_W} height={BAR_H} rx={3} fill={C.notarized} opacity={0.85} />
-        <line x1={BAR_X + (M / N) * BAR_W} y1={319} x2={BAR_X + (M / N) * BAR_W} y2={345} stroke={C.barM} strokeWidth={2} strokeDasharray="3,2" />
-        <text x={BAR_X + (M / N) * BAR_W} y={315} textAnchor="middle" fill={C.barM} fontSize={9} fontFamily="monospace" fontWeight={700}>M={M}</text>
-        <line x1={BAR_X + (L / N) * BAR_W} y1={319} x2={BAR_X + (L / N) * BAR_W} y2={345} stroke={C.barL} strokeWidth={2} strokeDasharray="3,2" />
-        <text x={BAR_X + (L / N) * BAR_W} y={315} textAnchor="middle" fill={C.barL} fontSize={9} fontFamily="monospace" fontWeight={700}>L={L}</text>
-        <text x={BAR_X + BAR_W + 10} y={325 + BAR_H / 2} dominantBaseline="middle" fill={C.text} fontSize={11} fontFamily="monospace" fontWeight={700}>
-          {M}/{N}{step === 1 ? ' (M notarized)' : ''}
-        </text>
-
-        {/* Block B bar - step 3 */}
-        {showBlockB && (
+        {/* Vote tally section (steps 1-3) */}
+        {!showAdvance && (
           <g>
-            <text x={BAR_X - 6} y={370 + BAR_H / 2} textAnchor="end" dominantBaseline="middle" fill={C.text} fontSize={10} fontFamily="monospace" fontWeight={600}>block B:</text>
-            <rect x={BAR_X} y={370} width={BAR_W} height={BAR_H} rx={3} fill={C.barBg} />
-            <rect x={BAR_X} y={370} width={(maxB / N) * BAR_W} height={BAR_H} rx={3} fill="#0d9488" opacity={0.85} />
-            <line x1={BAR_X + (M / N) * BAR_W} y1={364} x2={BAR_X + (M / N) * BAR_W} y2={390} stroke={C.barM} strokeWidth={2} strokeDasharray="3,2" />
-            <text x={BAR_X + (M / N) * BAR_W} y={360} textAnchor="middle" fill={C.barM} fontSize={9} fontFamily="monospace" fontWeight={700}>M={M}</text>
-            <line x1={BAR_X + (L / N) * BAR_W} y1={364} x2={BAR_X + (L / N) * BAR_W} y2={390} stroke={C.barL} strokeWidth={2} strokeDasharray="3,2" />
-            <text x={BAR_X + (L / N) * BAR_W} y={360} textAnchor="middle" fill={C.barL} fontSize={9} fontFamily="monospace" fontWeight={700}>L={L}</text>
-            <text x={BAR_X + BAR_W + 10} y={370 + BAR_H / 2} dominantBaseline="middle" fill="#dc2626" fontSize={11} fontFamily="monospace" fontWeight={700}>{maxB}/{N}</text>
+            <text x={30} y={300} fill={C.muted} fontSize={10} fontFamily="monospace">
+              {showBlockB ? 'can block B be finalized?' : 'vote tallies'}
+            </text>
+            <line x1={30} y1={305} x2={W - 30} y2={305} stroke="#eee" strokeWidth={1} />
+
+            {/* Block A bar */}
+            <text x={BAR_X - 6} y={325 + BAR_H / 2} textAnchor="end" dominantBaseline="middle" fill={C.text} fontSize={10} fontFamily="monospace" fontWeight={600}>block A:</text>
+            <rect x={BAR_X} y={325} width={BAR_W} height={BAR_H} rx={3} fill={C.barBg} />
+            <rect x={BAR_X} y={325} width={(M / N) * BAR_W} height={BAR_H} rx={3} fill={C.notarized} opacity={0.85} />
+            <line x1={BAR_X + (M / N) * BAR_W} y1={319} x2={BAR_X + (M / N) * BAR_W} y2={345} stroke={C.barM} strokeWidth={2} strokeDasharray="3,2" />
+            <text x={BAR_X + (M / N) * BAR_W} y={315} textAnchor="middle" fill={C.barM} fontSize={9} fontFamily="monospace" fontWeight={700}>M={M}</text>
+            <line x1={BAR_X + (L / N) * BAR_W} y1={319} x2={BAR_X + (L / N) * BAR_W} y2={345} stroke={C.barL} strokeWidth={2} strokeDasharray="3,2" />
+            <text x={BAR_X + (L / N) * BAR_W} y={315} textAnchor="middle" fill={C.barL} fontSize={9} fontFamily="monospace" fontWeight={700}>L={L}</text>
+            <text x={BAR_X + BAR_W + 10} y={325 + BAR_H / 2} dominantBaseline="middle" fill={C.text} fontSize={11} fontFamily="monospace" fontWeight={700}>
+              {M}/{N}{step === 1 ? ' (M notarized)' : ''}
+            </text>
+
+            {/* Block B bar - step 3 */}
+            {showBlockB && (
+              <g>
+                <text x={BAR_X - 6} y={370 + BAR_H / 2} textAnchor="end" dominantBaseline="middle" fill={C.text} fontSize={10} fontFamily="monospace" fontWeight={600}>block B:</text>
+                <rect x={BAR_X} y={370} width={BAR_W} height={BAR_H} rx={3} fill={C.barBg} />
+                <rect x={BAR_X} y={370} width={(maxB / N) * BAR_W} height={BAR_H} rx={3} fill="#0d9488" opacity={0.85} />
+                <line x1={BAR_X + (M / N) * BAR_W} y1={364} x2={BAR_X + (M / N) * BAR_W} y2={390} stroke={C.barM} strokeWidth={2} strokeDasharray="3,2" />
+                <text x={BAR_X + (M / N) * BAR_W} y={360} textAnchor="middle" fill={C.barM} fontSize={9} fontFamily="monospace" fontWeight={700}>M={M}</text>
+                <line x1={BAR_X + (L / N) * BAR_W} y1={364} x2={BAR_X + (L / N) * BAR_W} y2={390} stroke={C.barL} strokeWidth={2} strokeDasharray="3,2" />
+                <text x={BAR_X + (L / N) * BAR_W} y={360} textAnchor="middle" fill={C.barL} fontSize={9} fontFamily="monospace" fontWeight={700}>L={L}</text>
+                <text x={BAR_X + BAR_W + 10} y={370 + BAR_H / 2} dominantBaseline="middle" fill="#dc2626" fontSize={11} fontFamily="monospace" fontWeight={700}>{maxB}/{N}</text>
+              </g>
+            )}
+
+            {/* Proof text - step 3 */}
+            {showBlockB && (
+              <g>
+                <text x={W / 2} y={415} textAnchor="middle" fill={C.text} fontSize={10} fontFamily="monospace">
+                  B max votes = {honestNotInA} remaining honest + {F} Byzantine equivocators = {maxB}
+                </text>
+                <text x={W / 2} y={438} textAnchor="middle" fill="#dc2626" fontSize={12} fontFamily="monospace" fontWeight={700}>
+                  {maxB} {'<'} L={L}: block B cannot be finalized.
+                </text>
+              </g>
+            )}
           </g>
         )}
 
-        {/* Proof text */}
-        {showBlockB && (
+        {/* Step 4: Advance to next view - text */}
+        {showAdvance && (
           <g>
-            <text x={W / 2} y={415} textAnchor="middle" fill={C.text} fontSize={10} fontFamily="monospace">
-              B max = {honestNotInA} remaining honest + {F} Byzantine equivocators = {maxB}
+            <text x={W / 2} y={270} textAnchor="middle" fill={C.text} fontSize={10} fontFamily="monospace">
+              Block A reached M = {M}, so a notarization for A exists.
             </text>
-            <text x={W / 2} y={438} textAnchor="middle" fill="#dc2626" fontSize={12} fontFamily="monospace" fontWeight={700}>
-              {maxB} {'<'} L={L}: block B cannot be finalized.
+            <text x={W / 2} y={288} textAnchor="middle" fill={C.text} fontSize={10} fontFamily="monospace">
+              No conflicting block can reach the finalization quorum of {L} in the same view.
+            </text>
+            <text x={W / 2} y={320} textAnchor="middle" fill={C.notarized} fontSize={11} fontFamily="monospace" fontWeight={700}>
+              The next leader safely proposes a new block on top of A.
+            </text>
+            <line x1={200} y1={340} x2={W - 200} y2={340} stroke="#eee" strokeWidth={1} />
+            <text x={W / 2} y={366} textAnchor="middle" fill={C.muted} fontSize={9} fontFamily="monospace">
+              select_parent(v+1) scans backward for the latest notarized block and finds A in view v.
+            </text>
+            <text x={W / 2} y={384} textAnchor="middle" fill={C.muted} fontSize={9} fontFamily="monospace">
+              The leader of v+1 builds on A. If multiple notarizations exist in a view, the leader may pick any.
             </text>
           </g>
         )}
@@ -793,7 +873,7 @@ export default function MinimmitVisualization() {
           </div>
           <div className="legend-item">
             <span className="legend-swatch" style={{ background: C.finalized, borderRadius: '50%' }} />
-            <span className="legend-label">L notarization</span>
+            <span className="legend-label">finalization threshold</span>
           </div>
         </div>
       </div>
@@ -832,7 +912,7 @@ export default function MinimmitVisualization() {
               <span style={{ color: C.muted }}> = {M} votes (~{Math.round((M / N) * 100)}%)</span>
             </p>
             <p style={{ margin: 0 }}>
-              <strong>L notarization</strong> (4f+1, {'>'}80%): finalize block.
+              <strong>finalization threshold</strong> (4f+1, {'>'}80%): finalize block.
               <span style={{ color: C.muted }}> = {L} votes (~{Math.round((L / N) * 100)}%)</span>
             </p>
           </div>
