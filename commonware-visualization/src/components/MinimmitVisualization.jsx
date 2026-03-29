@@ -531,9 +531,9 @@ function PipelinedScene({ view, phase, voteCount, leaderIndex, votedReplicas, el
 // ─── M Notarization property scene ─────────────────────────────────
 
 const M_STEPS = [
-  { id: 1, label: 'Block A reaches M' },
-  { id: 2, label: 'Honest vs Byzantine' },
-  { id: 3, label: 'Equivocate' },
+  { id: 1, label: '1. Block A reaches M' },
+  { id: 2, label: '2. Honest vs Byzantine' },
+  { id: 3, label: '3. Equivocate' },
 ];
 
 function MNotarizationScene() {
@@ -762,7 +762,6 @@ function MNotarizationScene() {
 const SUB_TABS = [
   { id: 'overview', label: 'Overview' },
   { id: 'm-notarization', label: 'M Notarization' },
-  { id: 'l-notarization', label: 'L Notarization' },
 ];
 
 // ─── Main component ────────────────────────────────────────────────
@@ -789,7 +788,7 @@ export default function MinimmitVisualization() {
           </a>
         </h1>
         <p className="viz-subtitle">
-          A responsive, leader-based consensus protocol. Tolerates {'<'}20% Byzantine replicas. Finalizes in a single round of voting.
+          Byzantine-fault-tolerant SMR protocol. Tolerates {'<'}20% Byzantine replicas. Finalizes in a single round of voting.
         </p>
       </div>
 
@@ -834,27 +833,22 @@ export default function MinimmitVisualization() {
         <MNotarizationScene />
       )}
 
-      {activeTab === 'l-notarization' && (
-        <div style={{ fontFamily: 'monospace', color: C.muted, padding: '40px 0', textAlign: 'center', border: '1px solid #ddd' }}>
-          L Notarization property visualization (coming next)
-        </div>
-      )}
 
       <p className="viz-hint">
         {activeTab === 'overview'
           ? 'Watch the consensus cycle: leader proposes, validators vote:'
           : 'Select a tab to explore Minimmit properties.'}
       </p>
-      {activeTab === 'overview' && (
+      {(activeTab === 'overview' || activeTab === 'm-notarization') && (
         <div style={{ fontFamily: 'monospace', fontSize: '0.8em', color: C.text, lineHeight: 1.5, margin: '8px 0 0' }}>
           <p style={{ margin: '0 0 2px' }}>
-            Upon {'>'}40% (2f+1) of nodes voting for a block (<strong>M notarization</strong>), a node can progress to the next view.
+            Upon 2f+1 ({'>'}40%) nodes voting for a block (<strong>M notarization</strong>), a node can progress to the next view.
           </p>
           <p style={{ margin: '0 0 6px 16px', color: C.muted, fontSize: '0.92em' }}>
             2f+1 = {M} notarizations (~{Math.round((M / N) * 100)}%)
           </p>
           <p style={{ margin: '0 0 2px' }}>
-            Upon {'>'}80% (n-f) of nodes voting for a block (<strong>L notarization</strong>), a node can finalize the block.
+            Upon 4f+1 ({'>'}80%) nodes voting for a block (<strong>L notarization</strong>), a node can finalize the block.
           </p>
           <p style={{ margin: '0 0 0 16px', color: C.muted, fontSize: '0.92em' }}>
             n-f = {L} notarizations (~{Math.round((L / N) * 100)}%)
