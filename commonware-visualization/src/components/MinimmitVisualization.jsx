@@ -664,16 +664,6 @@ function MNotarizationScene() {
           );
         })}
 
-        {/* M-set bracket (step 1 only) */}
-        {step === 1 && (
-          <path d={`M${vx(0) - VALIDATOR_R},${ROW_Y + VALIDATOR_R + 32} L${vx(0) - VALIDATOR_R},${ROW_Y + VALIDATOR_R + 38} L${vx(M - 1) + VALIDATOR_R},${ROW_Y + VALIDATOR_R + 38} L${vx(M - 1) + VALIDATOR_R},${ROW_Y + VALIDATOR_R + 32}`}
-            fill="none" stroke={C.notarized} strokeWidth={1.5} />
-        )}
-        {step === 1 && (
-          <text x={(vx(0) + vx(M - 1)) / 2} y={ROW_Y + VALIDATOR_R + 50} textAnchor="middle" fill={C.notarized} fontSize={8} fontFamily="monospace" fontWeight={600}>
-            M-set: {M} votes for block A
-          </text>
-        )}
 
         {/* Insight text */}
         {step === 1 && (
@@ -834,28 +824,21 @@ export default function MinimmitVisualization() {
       )}
 
 
-      <p className="viz-hint">
-        {activeTab === 'overview'
-          ? 'Watch the consensus cycle: leader proposes, validators vote:'
-          : 'Select a tab to explore Minimmit properties.'}
-      </p>
       {(activeTab === 'overview' || activeTab === 'm-notarization') && (
-        <div style={{ fontFamily: 'monospace', fontSize: '0.8em', color: C.text, lineHeight: 1.5, margin: '8px 0 0' }}>
-          <p style={{ margin: '0 0 2px' }}>
-            Upon 2f+1 ({'>'}40%) nodes voting for a block (<strong>M notarization</strong>), a node can progress to the next view.
-          </p>
-          <p style={{ margin: '0 0 6px 16px', color: C.muted, fontSize: '0.92em' }}>
-            2f+1 = {M} notarizations (~{Math.round((M / N) * 100)}%)
-          </p>
-          <p style={{ margin: '0 0 2px' }}>
-            Upon 4f+1 ({'>'}80%) nodes voting for a block (<strong>L notarization</strong>), a node can finalize the block.
-          </p>
-          <p style={{ margin: '0 0 0 16px', color: C.muted, fontSize: '0.92em' }}>
-            n-f = {L} notarizations (~{Math.round((L / N) * 100)}%)
-          </p>
-          {mode === 'pipelined' && (
-            <p style={{ margin: '8px 0 0', color: C.muted }}>
-              Minimmit allows block proposals to be pipelined: once a block reaches M notarization, the next leader can immediately build on top of it without waiting for finalization. In this view, validators vote on block n+1 (dark fill) while still accumulating L votes to finalize block n (outer ring).
+        <div style={{ fontFamily: 'monospace', fontSize: '0.78em', color: C.text, lineHeight: 1.4, margin: '6px 0 0', display: 'flex', gap: 24 }}>
+          <div style={{ flex: 1 }}>
+            <p style={{ margin: '0 0 2px' }}>
+              <strong>M notarization</strong> (2f+1, {'>'}40%): advance to next view.
+              <span style={{ color: C.muted }}> = {M} votes (~{Math.round((M / N) * 100)}%)</span>
+            </p>
+            <p style={{ margin: 0 }}>
+              <strong>L notarization</strong> (4f+1, {'>'}80%): finalize block.
+              <span style={{ color: C.muted }}> = {L} votes (~{Math.round((L / N) * 100)}%)</span>
+            </p>
+          </div>
+          {activeTab === 'overview' && mode === 'pipelined' && (
+            <p style={{ margin: 0, flex: 1, color: C.muted, fontSize: '0.95em' }}>
+              Minimmit allows block proposals to be pipelined: once a block reaches M notarization, the next leader can immediately build on top of it without waiting for finalization. Validators vote on block n+1 (dark fill) while still accumulating L votes to finalize block n (outer ring).
             </p>
           )}
         </div>
