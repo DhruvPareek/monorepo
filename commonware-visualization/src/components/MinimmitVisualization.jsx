@@ -539,6 +539,7 @@ const M_STEPS = [
 
 function MNotarizationScene() {
   const [step, setStep] = useState(1);
+  const [showMore, setShowMore] = useState(false);
 
   // Use the same N, F, M, L as the rest of the visualization
   const honestInM = M - F; // 3
@@ -546,7 +547,7 @@ function MNotarizationScene() {
   const maxB = honestNotInA + F; // 8
 
   const W = 900;
-  const H = 530;
+  const H = showMore && step === 3 ? 570 : 530;
   const BAR_X = 200;
   const BAR_W = 440;
   const BAR_H = 16;
@@ -777,8 +778,33 @@ function MNotarizationScene() {
                   B max votes = {honestNotInA} remaining honest + {F} Byzantine equivocators = {maxB}
                 </text>
                 <text x={W / 2} y={438} textAnchor="middle" fill="#dc2626" fontSize={12} fontFamily="monospace" fontWeight={700}>
-                  {maxB} {'<'} L={L}: block B cannot be finalized.
+                  Block B cannot be finalized.
                 </text>
+                {/* More detail toggle */}
+                <foreignObject x={W / 2 - 20} y={450} width={40} height={20}>
+                  <button
+                    xmlns="http://www.w3.org/1999/xhtml"
+                    type="button"
+                    onClick={() => setShowMore((v) => !v)}
+                    style={{
+                      fontFamily: 'monospace', fontSize: 9, color: C.muted,
+                      background: 'none', border: 'none', cursor: 'pointer',
+                      textDecoration: 'underline', padding: 0,
+                    }}
+                  >
+                    {showMore ? 'less' : 'more'}
+                  </button>
+                </foreignObject>
+                {showMore && (
+                  <g>
+                    <text x={W / 2} y={482} textAnchor="middle" fill={C.muted} fontSize={9} fontFamily="monospace">
+                      If a nodes sees 2f+1 conflicting votes (i.e. a second M-notarization), at least (2f+1)-f = f+1 are from honest nodes.
+                    </text>
+                    <text x={W / 2} y={498} textAnchor="middle" fill={C.muted} fontSize={9} fontFamily="monospace">
+                      Therefore the maximum number of notarize(c, v) it can receive is n-(f+1) or 4f , strictly less than n-f or 4f+1.
+                    </text>
+                  </g>
+                )}
               </g>
             )}
           </g>
@@ -796,13 +822,30 @@ function MNotarizationScene() {
             <text x={W / 2} y={320} textAnchor="middle" fill={C.notarized} fontSize={11} fontFamily="monospace" fontWeight={700}>
               The next leader safely proposes a new block on top of A.
             </text>
-            <line x1={200} y1={340} x2={W - 200} y2={340} stroke="#eee" strokeWidth={1} />
-            <text x={W / 2} y={366} textAnchor="middle" fill={C.muted} fontSize={9} fontFamily="monospace">
-              select_parent(v+1) scans backward for the latest notarized block and finds A in view v.
-            </text>
-            <text x={W / 2} y={384} textAnchor="middle" fill={C.muted} fontSize={9} fontFamily="monospace">
-              The leader of v+1 builds on A. If multiple notarizations exist in a view, the leader may pick any.
-            </text>
+            <foreignObject x={W / 2 - 20} y={332} width={40} height={20}>
+              <button
+                xmlns="http://www.w3.org/1999/xhtml"
+                type="button"
+                onClick={() => setShowMore((v) => !v)}
+                style={{
+                  fontFamily: 'monospace', fontSize: 9, color: C.muted,
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  textDecoration: 'underline', padding: 0,
+                }}
+              >
+                {showMore ? 'less' : 'more'}
+              </button>
+            </foreignObject>
+            {showMore && (
+              <g>
+                <text x={W / 2} y={366} textAnchor="middle" fill={C.muted} fontSize={9} fontFamily="monospace">
+                  select_parent(v+1) scans backward for the latest notarized block and finds A in view v.
+                </text>
+                <text x={W / 2} y={384} textAnchor="middle" fill={C.muted} fontSize={9} fontFamily="monospace">
+                  The leader of v+1 builds on A. If multiple notarizations exist in a view, the leader may pick any.
+                </text>
+              </g>
+            )}
           </g>
         )}
 
@@ -858,7 +901,7 @@ export default function MinimmitVisualization() {
           </a>
         </h1>
         <p className="viz-subtitle">
-          Byzantine-fault-tolerant SMR protocol. Tolerates {'<'}20% Byzantine replicas. Finalizes in a single round of voting.
+          Byzantine-fault-tolerant SMR protocol. Tolerates 5f+1{'<='}n or {'<'}20% Byzantine replicas. Finalizes in a single round of voting.
         </p>
       </div>
 
@@ -912,7 +955,7 @@ export default function MinimmitVisualization() {
               <span style={{ color: C.muted }}> = {M} votes (~{Math.round((M / N) * 100)}%)</span>
             </p>
             <p style={{ margin: 0 }}>
-              <strong>finalization threshold</strong> (4f+1, {'>'}80%): finalize block.
+              <strong>finalization threshold</strong> (n-f, {'>'}80%): finalize block.
               <span style={{ color: C.muted }}> = {L} votes (~{Math.round((L / N) * 100)}%)</span>
             </p>
           </div>
