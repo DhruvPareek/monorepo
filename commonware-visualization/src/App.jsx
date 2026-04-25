@@ -18,6 +18,32 @@ const EXAMPLES = [
   { id: 'sync', label: 'sync' },
 ];
 
+const DEFAULT_EXAMPLE_ID = 'alto';
+const EXAMPLE_IDS = new Set(EXAMPLES.map((example) => example.id));
+
+function getExamplePath(exampleId) {
+  return `/${exampleId}`;
+}
+
+function getExampleFromPath(pathname) {
+  const normalizedPath = pathname.replace(/\/+$/, '') || '/';
+
+  if (normalizedPath === '/') {
+    return null;
+  }
+
+  const exampleId = normalizedPath.slice(1);
+  return EXAMPLE_IDS.has(exampleId) ? exampleId : null;
+}
+
+function replaceActivePath(exampleId) {
+  const nextPath = getExamplePath(exampleId);
+
+  if (window.location.pathname !== nextPath) {
+    window.history.replaceState({}, '', nextPath);
+  }
+}
+
 // Animated ASCII logo matching commonware.xyz
 function Logo() {
   const topRow = useAnimatedSymbols(
@@ -88,16 +114,42 @@ function useAnimatedSymbols(initial, types) {
 
 function App() {
   const [activeExample, setActiveExample] = useState(() => {
-    const saved = localStorage.getItem('commonware-viz-example');
-    return EXAMPLES.some((ex) => ex.id === saved) ? saved : 'alto';
+    return getExampleFromPath(window.location.pathname) ?? DEFAULT_EXAMPLE_ID;
   });
   const [exampleRenderKey, setExampleRenderKey] = useState(0);
 
   useEffect(() => {
-    localStorage.setItem('commonware-viz-example', activeExample);
-  }, [activeExample]);
+    if (getExampleFromPath(window.location.pathname) === null) {
+      replaceActivePath(DEFAULT_EXAMPLE_ID);
+    }
+  }, []);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      const nextExample = getExampleFromPath(window.location.pathname);
+
+      if (nextExample === null) {
+        replaceActivePath(DEFAULT_EXAMPLE_ID);
+        setActiveExample(DEFAULT_EXAMPLE_ID);
+        setExampleRenderKey((current) => current + 1);
+        return;
+      }
+
+      setActiveExample(nextExample);
+      setExampleRenderKey((current) => current + 1);
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   const openExample = (exampleId) => {
+    const nextPath = getExamplePath(exampleId);
+
+    if (window.location.pathname !== nextPath) {
+      window.history.pushState({}, '', nextPath);
+    }
+
     setActiveExample(exampleId);
     setExampleRenderKey((current) => current + 1);
   };
@@ -110,8 +162,10 @@ function App() {
       <nav className="example-tabs">
         {EXAMPLES.map((ex) => (
           <button
+            type="button"
             key={ex.id}
             className={`example-tab ${activeExample === ex.id ? 'example-tab--active' : ''}`}
+            aria-current={activeExample === ex.id ? 'page' : undefined}
             onClick={() => openExample(ex.id)}
           >
             {ex.label}
