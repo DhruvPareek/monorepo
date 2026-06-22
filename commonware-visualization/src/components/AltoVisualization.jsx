@@ -308,8 +308,8 @@ export default function AltoVisualization() {
           </a>
         </h1>
         <p className="viz-subtitle">
-          A minimal, high-performance blockchain built on the Commonware
-          Library.
+          A minimal, high-performance blockchain example built on the
+          Commonware Library.
         </p>
       </div>
 

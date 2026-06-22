@@ -193,7 +193,7 @@ export default function ChatVisualization() {
           </a>
         </h1>
         <p className="viz-subtitle">
-          Fixed-friend encrypted group chat over authenticated peer discovery.
+          Fixed-friend encrypted group chat example over authenticated peer discovery.
         </p>
       </div>
 

@@ -190,8 +190,8 @@ export default function LogVisualization() {
           </a>
         </h1>
         <p className="viz-subtitle">
-          Four participants agree on an ordered log of SHA-256 digests for local
-          16-byte secrets.
+          An example where four participants agree on an ordered log of
+          SHA-256 digests for local 16-byte secrets.
         </p>
       </div>
 

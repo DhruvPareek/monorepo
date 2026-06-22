@@ -901,7 +901,7 @@ export default function MinimmitVisualization() {
           </a>
         </h1>
         <p className="viz-subtitle">
-          Byzantine-fault-tolerant SMR protocol. Tolerates 5f+1{'<='}n or {'<'}20% Byzantine replicas. Finalizes in a single round of voting.
+          A visual depiction of a byzantine-fault-tolerant SMR protocol. Tolerates 5f+1{'<='}n or {'<'}20% Byzantine replicas. Finalizes in a single round of voting.
         </p>
       </div>
 

@@ -56,7 +56,7 @@ export default function SyncVisualization() {
           <a href="https://github.com/commonwarexyz/monorepo/tree/main/examples/sync" target="_blank" rel="noopener noreferrer">Sync</a>
         </h1>
         <p className="viz-subtitle">
-          Synchronize state between a server and client.
+          An example synchronising state between a server and client.
         </p>
       </div>
 

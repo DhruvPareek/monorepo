@@ -185,7 +185,7 @@ export default function BridgeVisualization() {
       <div className="viz-header">
         <h1 className="viz-title"><a href="https://github.com/commonwarexyz/monorepo/tree/main/examples/bridge" target="_blank" rel="noopener noreferrer">Bridge</a></h1>
         <p className="viz-subtitle">
-          Send succinct consensus certificates between two networks.
+          An example sending consensus certificates between two networks.
         </p>
       </div>
 

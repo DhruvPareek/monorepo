@@ -229,8 +229,8 @@ export default function FloodVisualization() {
           </a>
         </h1>
         <p className="viz-subtitle">
-          Symmetric peer-to-peer workload generator for discovery, encrypted
-          transport, and one-way latency measurement.
+          An example symmetric peer-to-peer workload generator for discovery,
+          encrypted transport, and one-way latency measurement.
         </p>
       </div>
 
