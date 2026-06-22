@@ -313,3 +313,45 @@
   height: auto;
   border: 1px solid #e2e2e2;
 }
+
+/* Constantinople sub-tabs (chain / validator), pinned to the top-left of the box */
+.const-subtabs {
+  display: flex;
+  gap: 2px;
+  margin-bottom: -1px;
+  font-family: monospace;
+}
+
+.const-subtab {
+  padding: 3px 14px;
+  background: none;
+  border: 1px solid #ddd;
+  border-bottom: none;
+  border-radius: 4px 4px 0 0;
+  cursor: pointer;
+  font-family: monospace;
+  font-size: 0.8em;
+  color: gray;
+}
+
+.const-subtab:hover {
+  background: #f9f9f9;
+  color: black;
+}
+
+.const-subtab--active {
+  color: black;
+  font-weight: bold;
+  background: #f4f4f4;
+}
+
+.const-comingsoon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 460px;
+  border: 1px solid #ddd;
+  font-family: monospace;
+  font-size: 1.1em;
+  color: #999;
+}

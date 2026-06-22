@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import './App.css';
 import BridgeVisualization from './components/BridgeVisualization';
 import ChatVisualization from './components/ChatVisualization';
+import ConstantinopleVisualization from './components/ConstantinopleVisualization';
 import SyncVisualization from './components/SyncVisualization';
 import AltoVisualization from './components/AltoVisualization';
 import FloodVisualization from './components/FloodVisualization';
@@ -12,6 +13,7 @@ const EXAMPLES = [
   { id: 'alto', label: 'alto' },
   { id: 'bridge', label: 'bridge' },
   { id: 'chat', label: 'chat' },
+  { id: 'constantinople', label: 'constantinople' },
   { id: 'flood', label: 'flood' },
   { id: 'log', label: 'log' },
   { id: 'minimmit', label: 'minimmit' },
@@ -174,6 +176,7 @@ function App() {
       </nav>
       {activeExample === 'bridge' && <BridgeVisualization key={activeVisualizationKey} />}
       {activeExample === 'chat' && <ChatVisualization key={activeVisualizationKey} />}
+      {activeExample === 'constantinople' && <ConstantinopleVisualization key={activeVisualizationKey} />}
       {activeExample === 'sync' && <SyncVisualization key={activeVisualizationKey} />}
       {activeExample === 'alto' && <AltoVisualization key={activeVisualizationKey} />}
       {activeExample === 'flood' && <FloodVisualization key={activeVisualizationKey} />}
