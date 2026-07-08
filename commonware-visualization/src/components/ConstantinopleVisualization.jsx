@@ -1,22 +1,15 @@
 import { useState, useCallback } from 'react';
+import ConstantinopleChainVisualization from './ConstantinopleChainVisualization';
 import ConstantinopleValidatorVisualization from './ConstantinopleValidatorVisualization';
-// The full chain visualization is built and preserved in
-// ./ConstantinopleChainVisualization. It is hidden behind a "coming soon"
-// placeholder for now; to re-enable, render <ConstantinopleChainVisualization
-// mousePos={mousePos} /> from the 'chain' sub-tab below.
 
 const SUB_TABS = [
-  { id: 'chain', label: 'chain' },
+  // Chain sub-tab temporarily hidden; uncomment to restore it (and consider
+  // switching DEFAULT_SUB_TAB back to 'chain').
+  // { id: 'chain', label: 'chain' },
   { id: 'validator', label: 'validator' },
 ];
 
 const DEFAULT_SUB_TAB = 'validator';
-
-function ChainComingSoon() {
-  return (
-    <div className="const-comingsoon">coming soon...</div>
-  );
-}
 
 export default function ConstantinopleVisualization() {
   const [subTab, setSubTab] = useState(DEFAULT_SUB_TAB);
@@ -57,7 +50,9 @@ export default function ConstantinopleVisualization() {
         ))}
       </div>
 
-      {subTab === 'chain' && <ChainComingSoon />}
+      {subTab === 'chain' && (
+        <ConstantinopleChainVisualization mousePos={mousePos} />
+      )}
       {subTab === 'validator' && (
         <ConstantinopleValidatorVisualization mousePos={mousePos} />
       )}

@@ -17,7 +17,7 @@ const STEPS = [
     key: 'submit',
     label: 'Submit',
     detail:
-      'Clients POST signed transactions to the primary mempool HTTP server. Handlers verify each transaction and queue it in the mailbox.',
+      'Clients POST signed transactions to the mempool HTTP server, whose request handlers verify each transaction and queue it in the mailbox.',
     edges: ['submit'],
     nodes: ['client', 'mempool'],
   },
@@ -25,7 +25,7 @@ const STEPS = [
     key: 'propose',
     label: 'Propose',
     detail:
-      'When simplex elects this primary as leader, glue asks the application to propose. The application pulls a batch from the mempool TransactionSource, executes the transfers, and produces a block plus updated QMDB state and transaction roots.',
+      'When simplex elects this validator as leader, glue asks the application to propose. The application pulls a batch from the mempool TransactionSource, executes the transfers, and produces a block plus updated QMDB state and transaction roots.',
     edges: ['elect', 'txsource', 'glue_app', 'app_qmdb'],
     nodes: ['simplex', 'glue', 'mempool', 'application', 'qmdb'],
   },
@@ -41,9 +41,9 @@ const STEPS = [
     key: 'verify',
     label: 'Verify',
     detail:
-      'For a peer-proposed block, simplex hands it to glue, which calls application.verify_child: signatures are checked, the block body is executed against the parent state, and the computed roots are compared to the header roots.',
-    edges: ['p2p_peers', 'simplex_p2p', 'elect', 'glue_app', 'app_qmdb'],
-    nodes: ['peers', 'p2p', 'simplex', 'glue', 'application', 'qmdb'],
+      'Simplex carries only a commitment (a coding digest), not the block body. The block itself is reconstructed by marshal from erasure-coded shards received over the mesh; glue then calls application.verify_child, which checks signatures, re-executes the block body against the parent state, and compares the computed roots to the header roots.',
+    edges: ['p2p_peers', 'simplex_p2p', 'marshal_p2p', 'elect', 'glue_app', 'app_qmdb'],
+    nodes: ['peers', 'p2p', 'simplex', 'marshal', 'glue', 'application', 'qmdb'],
   },
   {
     key: 'finalize',
@@ -57,26 +57,36 @@ const STEPS = [
 
 const NODE_TOOLTIP = {
   client:
-    'External client (or the spammer) that signs transactions and submits them to the primary over HTTP.',
+    'External client (or the spammer) that signs transactions and submits them to the validator over HTTP.',
   peers:
-    'The other validators in the fixed epoch-0 set. The primary exchanges votes, certificates, and erasure-coded shards with them over the authenticated p2p mesh.',
-  config:
-    'Parsed validator config. A present DKG share makes this node a primary: it holds a threshold share, votes in simplex, and runs the mempool HTTP server.',
+    'The other validators in the fixed epoch-0 set. Votes, certificates, and erasure-coded shards are exchanged with them over the authenticated p2p mesh.',
   mempool:
-    'Transaction intake. The primary runs the HTTP server; handlers verify submissions and queue them in the mailbox that backs the engine TransactionSource. Finalized marshal updates flow back here so waiting submitters resolve.',
+    'constantinople-mempool. Transaction intake over an HTTP server; handlers verify submissions and queue them in a mailbox. The engine pulls from this mailbox (its TransactionSource) when proposing a block. When a block finalizes, marshal reports it back here so clients waiting on their submitted transactions get a finalized/dropped result.',
   p2p:
-    'Authenticated discovery network. Registers 8 rate-limited channels: votes, certificates, simplex resolver, marshal shards, marshal backfill, state-sync, transaction-sync, and the state-sync probe.',
+    'commonware_p2p::authenticated::discovery. Authenticated peer networking with discovery. Registers 8 rate-limited channels: votes, certificates, simplex resolver, marshal shards, marshal backfill, state-sync, transaction-sync, and the state-sync probe.',
   simplex:
-    'Single-epoch BFT consensus. The primary signs votes with its BLS share; notarization and finalization are threshold certificates. A round-robin elector picks the leader each view.',
+    'commonware_consensus::simplex. Single-epoch BFT consensus. Votes are signed with a BLS threshold share; notarization and finalization are threshold certificates. A round-robin elector picks the leader each view.',
   marshal:
-    'Makes finalized blocks available. Erasure-codes proposed blocks into shards so any threshold of validators can reconstruct the body, pairs certificates with blocks, and backfills missing blocks.',
+    'commonware_consensus::marshal. Makes finalized blocks available. It erasure-codes proposed blocks into shards using commonware-coding so any threshold of validators can reconstruct the body, pairs certificates with blocks, and backfills missing blocks.',
   glue:
-    'commonware-glue stateful manages the speculative QMDB lifecycle. It does not execute or verify blocks itself: it calls into constantinople-application to propose, verify, and apply, then commits the database on finalization and drives state and transaction sync for recovery.',
+    'commonware_glue::stateful manages the speculative QMDB lifecycle. It does not execute or verify blocks itself: it calls into constantinople-application to propose, verify, and apply, then commits the database on finalization and drives state and transaction sync for recovery.',
   application:
-    'constantinople-application execution. On propose it pulls a mempool batch and executes transfers; on verify it re-executes a peer block against the parent state and compares roots; on finalize it runs the finalized hook.',
+    'constantinople-application. On propose it pulls a mempool batch and executes transfers; on verify it re-executes a peer block against the parent state and compares roots.',
   qmdb:
-    'commonware-storage QMDB. Merkleized account-state log and transaction-hash log. Each block advances a state root and a transactions root that can be proven to light clients.',
+    'commonware_storage::qmdb. Merkleized account-state log and transaction-hash log. Each block advances a state root and a transactions root that can be proven to light clients.',
 };
+
+// True if a point lands inside (or right at the edge of) any node box. Used to
+// keep edge labels from being placed on top of boxes.
+function labelInsideBox(px, py) {
+  return Object.values(NODES).some(
+    (n) =>
+      px >= n.x - n.w / 2 - 2 &&
+      px <= n.x + n.w / 2 + 2 &&
+      py >= n.y - n.h / 2 - 2 &&
+      py <= n.y + n.h / 2 + 2
+  );
+}
 
 function ValidatorTooltip({ nodeId, position }) {
   if (!nodeId) return null;
@@ -95,6 +105,10 @@ function ValidatorBox({ node, emphasized, dimmed, onHover }) {
   const left = node.x - node.w / 2;
   const top = node.y - node.h / 2;
   const opacity = dimmed ? 0.28 : 1;
+  // External processes (Client, Peers) are not commonware/constantinople
+  // modules or crates, so they get a distinct look: dashed grey outline, grey
+  // fill, and no colored primitive stripe.
+  const external = node.kind === 'external';
   return (
     <g
       style={{ opacity, transition: 'opacity 0.3s' }}
@@ -122,18 +136,21 @@ function ValidatorBox({ node, emphasized, dimmed, onHover }) {
         width={node.w}
         height={node.h}
         rx={7}
-        fill="white"
-        stroke={emphasized ? node.color : '#bbb'}
+        fill={external ? '#f2f2f2' : 'white'}
+        stroke={emphasized ? node.color : external ? '#9e9e9e' : '#bbb'}
         strokeWidth={emphasized ? 1.8 : 1.1}
+        strokeDasharray={external ? '5,4' : undefined}
       />
-      {/* Colored module stripe */}
-      <rect x={left} y={top} width={5} height={node.h} rx={2} fill={node.color} />
+      {/* Colored primitive stripe (modules/crates only, not external processes) */}
+      {!external && (
+        <rect x={left} y={top} width={5} height={node.h} rx={2} fill={node.color} />
+      )}
       <text
         x={node.x + 3}
         y={node.y - (node.sublabel ? 7 : 0)}
         textAnchor="middle"
         dominantBaseline="middle"
-        fill="black"
+        fill={external ? '#555' : 'black'}
         fontSize={12.5}
         fontFamily="monospace"
         fontWeight={700}
@@ -166,6 +183,31 @@ export default function ConstantinopleValidatorVisualization({ mousePos }) {
   const activeStep = STEPS[activeIndex];
   const activeEdges = new Set(activeStep.edges);
   const activeNodes = new Set(activeStep.nodes);
+
+  // Place each edge label on whichever perpendicular side of its line is clear
+  // of boxes (falling back to the upper side). Rendered in a layer above the
+  // boxes so a label is never occluded by a box its line passes under.
+  const LABEL_OFFSET = 12;
+  const edgeLabels = EDGES.map((edge) => {
+    const { x1, y1, x2, y2 } = edgePoints(edge);
+    // Anchor the label at edge.labelPos along the line (default midpoint) so a
+    // specific label can be nudged toward an end to clear a nearby box.
+    const t = edge.labelPos ?? 0.5;
+    const mx = x1 + (x2 - x1) * t;
+    const my = y1 + (y2 - y1) * t;
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const plen = Math.hypot(dx, dy) || 1;
+    const px = -dy / plen;
+    const py = dx / plen;
+    const candidates = [
+      { x: mx + px * LABEL_OFFSET, y: my + py * LABEL_OFFSET },
+      { x: mx - px * LABEL_OFFSET, y: my - py * LABEL_OFFSET },
+    ];
+    const clear = candidates.filter((c) => !labelInsideBox(c.x, c.y));
+    const pick = (clear.length ? clear : candidates).sort((a, b) => a.y - b.y)[0];
+    return { edge, active: activeEdges.has(edge.id), lx: pick.x, ly: pick.y };
+  });
 
   return (
     <>
@@ -246,8 +288,6 @@ export default function ConstantinopleValidatorVisualization({ mousePos }) {
         {EDGES.map((edge) => {
           const { x1, y1, x2, y2 } = edgePoints(edge);
           const active = activeEdges.has(edge.id);
-          const mx = (x1 + x2) / 2;
-          const my = (y1 + y2) / 2;
           const stroke = edge.context
             ? '#dcdcdc'
             : active
@@ -268,22 +308,9 @@ export default function ConstantinopleValidatorVisualization({ mousePos }) {
                 strokeDasharray={edge.dashed ? '5,4' : undefined}
               />
               {active && (
-                <>
-                  <circle r={3.6} fill={edge.color} opacity={0.9}>
-                    <animateMotion dur="1.3s" repeatCount="indefinite" path={`M${x1},${y1} L${x2},${y2}`} />
-                  </circle>
-                  <text
-                    x={mx}
-                    y={my - 4}
-                    textAnchor="middle"
-                    fill={edge.color}
-                    fontSize={8.5}
-                    fontFamily="monospace"
-                    fontWeight={600}
-                  >
-                    {edge.label}
-                  </text>
-                </>
+                <circle r={3.6} fill={edge.color} opacity={0.9}>
+                  <animateMotion dur="1.3s" repeatCount="indefinite" path={`M${x1},${y1} L${x2},${y2}`} />
+                </circle>
               )}
             </g>
           );
@@ -299,6 +326,28 @@ export default function ConstantinopleValidatorVisualization({ mousePos }) {
             onHover={setHoverNode}
           />
         ))}
+
+        {/* Active edge labels, drawn above the boxes so they are never hidden */}
+        {edgeLabels
+          .filter((d) => d.active)
+          .map((d) => (
+            <text
+              key={`label-${d.edge.id}`}
+              x={d.lx}
+              y={d.ly}
+              textAnchor="middle"
+              dominantBaseline="middle"
+              fill={d.edge.color}
+              fontSize={8.5}
+              fontFamily="monospace"
+              fontWeight={600}
+              stroke="white"
+              strokeWidth={3}
+              paintOrder="stroke"
+            >
+              {d.edge.label}
+            </text>
+          ))}
 
         {/* Step indicator */}
         <text
@@ -325,7 +374,7 @@ export default function ConstantinopleValidatorVisualization({ mousePos }) {
 
       <div className="channel-selectors-row">
         <div className="channel-selector">
-          <div className="channel-selector-label">Block Lifecycle (primary)</div>
+          <div className="channel-selector-label">Block Lifecycle</div>
           <div className="channel-selector-buttons">
             {STEPS.map((step, i) => {
               const active = pinned === i;

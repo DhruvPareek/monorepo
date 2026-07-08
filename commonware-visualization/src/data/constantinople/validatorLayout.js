@@ -34,17 +34,6 @@ export const NODES = {
     sublabel: 'other validators',
     color: '#607D8B',
   },
-  config: {
-    id: 'config',
-    kind: 'context',
-    x: 330,
-    y: 150,
-    w: 158,
-    h: 42,
-    label: 'config',
-    sublabel: 'DKG share -> primary',
-    color: '#B0BEC5',
-  },
   mempool: {
     id: 'mempool',
     kind: 'subsystem',
@@ -53,7 +42,7 @@ export const NODES = {
     w: 158,
     h: 66,
     label: 'mempool',
-    sublabel: 'HTTP intake',
+    sublabel: 'transaction mailbox',
     color: '#1565C0',
   },
   p2p: {
@@ -97,7 +86,7 @@ export const NODES = {
     w: 150,
     h: 66,
     label: 'glue stateful',
-    sublabel: 'QMDB lifecycle',
+    sublabel: 'drives app + state',
     color: '#00695C',
   },
   application: {
@@ -108,7 +97,7 @@ export const NODES = {
     w: 140,
     h: 62,
     label: 'application',
-    sublabel: 'execute transfers',
+    sublabel: 'transaction execution',
     color: '#37474F',
   },
   qmdb: {
@@ -128,7 +117,7 @@ export const NODES = {
 // selector; `config_mempool` is always-on faint context.
 export const EDGES = [
   { id: 'submit', from: 'client', to: 'mempool', color: '#1565C0', label: 'POST txs' },
-  { id: 'txsource', from: 'mempool', to: 'application', color: '#1565C0', label: 'TxSource' },
+  { id: 'txsource', from: 'mempool', to: 'application', color: '#1565C0', label: 'tx batch', labelPos: 0.68 },
   { id: 'elect', from: 'simplex', to: 'glue', color: '#7B1FA2', label: 'propose / verify' },
   { id: 'glue_app', from: 'glue', to: 'application', color: '#00695C', label: 'execute' },
   { id: 'app_qmdb', from: 'application', to: 'qmdb', color: '#37474F', label: 'roots' },
@@ -139,7 +128,6 @@ export const EDGES = [
   { id: 'finalize', from: 'marshal', to: 'glue', color: '#E65100', label: 'finalization' },
   { id: 'glue_commit', from: 'glue', to: 'qmdb', color: '#00695C', label: 'commit' },
   { id: 'reporter', from: 'marshal', to: 'mempool', color: '#2E7D32', label: 'resolve' },
-  { id: 'config_mempool', from: 'config', to: 'mempool', color: '#B0BEC5', label: 'role', dashed: true, context: true },
 ];
 
 // Point on a node's border in the direction of a target point.

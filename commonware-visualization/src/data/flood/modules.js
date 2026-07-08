@@ -25,14 +25,14 @@ export const FLOOD_MODULES = {
     color: '#1565C0',
     short: 'Encrypted transport',
     detail:
-      'commonware-stream::encrypted provides authenticated handshakes, encrypted framing, mutual identity verification, and forward-secret sessions underneath discovery.',
+      'commonware_stream::encrypted provides authenticated handshakes, encrypted framing, mutual identity verification, and forward-secret sessions underneath discovery.',
   },
   runtime: {
     name: 'runtime',
     color: '#2E7D32',
     short: 'Tokio execution',
     detail:
-      'commonware-runtime::tokio runs the listener, dialer, sender, receiver, telemetry export, timers, and metrics registration.',
+      'commonware_runtime::tokio runs the listener, dialer, sender, receiver, telemetry export, timers, and metrics registration.',
   },
   deployer: {
     name: 'deployer',

@@ -39,7 +39,7 @@ export const LOG_MODULES = {
     color: '#2E7D32',
     short: 'Async foundation',
     detail:
-      'commonware-runtime::tokio hosts the network, consensus actors, storage, quotas, RNG-backed secret generation, metrics, and the local GUI task. Every moving part in the example runs on this foundation.',
+      'commonware_runtime::tokio hosts the network, consensus actors, storage, quotas, RNG-backed secret generation, metrics, and the local GUI task. Every moving part in the example runs on this foundation.',
   },
 };
 

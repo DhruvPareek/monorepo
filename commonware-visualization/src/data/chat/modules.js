@@ -18,7 +18,7 @@ export const CHAT_MODULES = {
     color: '#2E7D32',
     short: 'Tokio execution',
     detail:
-      'commonware-runtime::tokio runs the listener, dialer, discovery actors, keyboard task, message receiver, timers, quotas, and metrics export used by the TUI.',
+      'commonware_runtime::tokio runs the listener, dialer, discovery actors, keyboard task, message receiver, timers, quotas, and metrics export used by the TUI.',
   },
 };
 
