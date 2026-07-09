@@ -1,36 +1,25 @@
-import { CONSTANTINOPLE_MODULES } from '../../data/constantinople/modules';
-import { VALIDATOR_INTERNAL } from '../../data/constantinople/pipelines';
-
-const CHIP_TEXT = {
-  consensus: 'CS',
-  marshal: 'MA',
-  storage: 'ST',
-  glue: 'GL',
-  mempool: 'MP',
-  p2p: 'P2',
-  resolver: 'RS',
-  cryptography: 'CR',
-  runtime: 'RT',
-};
-
-// Validator circle with a 3x3 grid of internal module dots. The primary fronts
-// the mempool; the leader for the current round gets a pulsing ring.
+// Validator circle for the chain (network) view. Voting primaries are solid
+// circles with a V# label (leader ring in purple, execute pulse in teal).
+// Non-voting secondaries use the same circle but dashed and muted, with a role
+// label and a small caption below - so the quorum still reads as exactly four.
 export default function ConstantinopleValidatorNode({
   validator,
   isLeader,
-  isPrimary,
   pulsing,
   highlighted,
   dimmed,
-  highlightModule,
-  onModuleClick,
+  secondary,
+  sublabel,
+  pulseColor = '#00695C',
   onClick,
   onMouseEnter,
   onMouseLeave,
 }) {
   const { x, y, label } = validator;
   const opacity = dimmed ? 0.2 : 1;
-  const radius = 46;
+  const radius = 32;
+  // Secondaries carry a word (e.g. "Relayer"); primaries carry a short "V#".
+  const labelSize = secondary ? 9.5 : 14;
 
   return (
     <g
@@ -40,7 +29,7 @@ export default function ConstantinopleValidatorNode({
       onMouseLeave={onMouseLeave}
       cursor="pointer"
     >
-      {isLeader && (
+      {!secondary && isLeader && (
         <circle cx={x} cy={y} r={radius + 9} fill="none" stroke="#7B1FA2" strokeWidth={1.8}>
           <animate
             attributeName="r"
@@ -56,8 +45,8 @@ export default function ConstantinopleValidatorNode({
           />
         </circle>
       )}
-      {pulsing && !isLeader && (
-        <circle cx={x} cy={y} r={radius + 6} fill="none" stroke="#00695C" strokeWidth={1.6}>
+      {pulsing && (secondary || !isLeader) && (
+        <circle cx={x} cy={y} r={radius + 6} fill="none" stroke={pulseColor} strokeWidth={1.6}>
           <animate attributeName="opacity" values="0.6;0.1;0.6" dur="1s" repeatCount="indefinite" />
         </circle>
       )}
@@ -66,78 +55,35 @@ export default function ConstantinopleValidatorNode({
         cy={y}
         r={radius}
         fill="white"
-        stroke={highlighted ? 'black' : '#999'}
+        stroke={highlighted ? 'black' : secondary ? '#9e9e9e' : '#999'}
         strokeWidth={highlighted ? 1.8 : 1.2}
+        strokeDasharray={secondary ? '4,3' : undefined}
       />
       <text
         x={x}
-        y={y - radius + 13}
+        y={y}
         textAnchor="middle"
         dominantBaseline="middle"
-        fill="black"
-        fontSize={13}
+        fill={secondary ? '#555' : 'black'}
+        fontSize={labelSize}
         fontFamily="monospace"
         fontWeight={700}
       >
         {label}
       </text>
-      {isPrimary && (
+      {secondary && sublabel && (
         <text
           x={x}
-          y={y - radius + 24}
+          y={y + radius + 11}
           textAnchor="middle"
           dominantBaseline="middle"
-          fill="#1565C0"
-          fontSize={6.5}
+          fill="#767676"
+          fontSize={8}
           fontFamily="monospace"
-          fontWeight={700}
         >
-          primary
+          {sublabel}
         </text>
       )}
-      {VALIDATOR_INTERNAL.map((item, i) => {
-        const mod = CONSTANTINOPLE_MODULES[item.module];
-        const cols = 3;
-        const row = Math.floor(i / cols);
-        const col = i % cols;
-        const dotX = x + (col - 1) * 18;
-        const dotY = y - 2 + row * 16;
-        const modHighlighted = highlightModule === item.module;
-        const modDimmed = highlightModule && highlightModule !== item.module;
-        return (
-          <g
-            key={item.module}
-            opacity={modDimmed ? 0.15 : 1}
-            style={{ transition: 'opacity 0.3s', cursor: 'pointer' }}
-            onClick={(e) => {
-              e.stopPropagation();
-              onModuleClick?.(item.module);
-            }}
-          >
-            <circle
-              cx={dotX}
-              cy={dotY}
-              r={modHighlighted ? 8 : 6.5}
-              fill={mod.color}
-              opacity={modHighlighted ? 1 : 0.78}
-              stroke={modHighlighted ? 'black' : 'none'}
-              strokeWidth={modHighlighted ? 1 : 0}
-            />
-            <text
-              x={dotX}
-              y={dotY + 0.8}
-              textAnchor="middle"
-              dominantBaseline="middle"
-              fill="white"
-              fontSize={modHighlighted ? 6 : 5.2}
-              fontFamily="monospace"
-              fontWeight={700}
-            >
-              {CHIP_TEXT[item.module]}
-            </text>
-          </g>
-        );
-      })}
     </g>
   );
 }

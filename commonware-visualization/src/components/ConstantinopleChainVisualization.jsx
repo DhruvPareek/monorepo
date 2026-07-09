@@ -1,15 +1,17 @@
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import {
   WIDTH,
   HEIGHT,
   CLUSTER,
   VALIDATORS,
-  PRIMARY_VALIDATOR,
-  INDEXER_UPLOADER,
   SPAMMER,
+  RELAYER,
+  INDEXER_SECONDARY,
   INDEXER,
   EXPLORER,
   SUBMIT_CONNECTION_MODULES,
+  RELAY_CONNECTION_MODULES,
+  FOLLOW_CONNECTION_MODULES,
   UPLOAD_CONNECTION_MODULES,
   STREAM_CONNECTION_MODULES,
 } from '../data/constantinople/layout';
@@ -23,8 +25,11 @@ import {
   CERT_REPAIR_PIPELINE,
   SHARD_PIPELINE,
   BACKFILL_PIPELINE,
-  DB_SYNC_PIPELINE,
+  STATE_SYNC_PIPELINE,
+  TX_SYNC_PIPELINE,
+  PROBE_PIPELINE,
   SUBMIT_PIPELINE,
+  RELAY_PIPELINE,
   UPLOAD_PIPELINE,
   STREAM_PIPELINE,
   SPAMMER_INTERNAL,
@@ -56,47 +61,74 @@ const MESH_LANES = [
   {
     key: 'certRepair',
     label: 'Cert Repair',
-    detail: 'Simplex resolver fetching missing certificates by view on channel 2.',
+    detail: 'Simplex backfiller fetching missing notarization/nullification certificates by view on channel 2, so a validator that fell behind can re-enter consensus.',
     pipeline: CERT_REPAIR_PIPELINE,
-    connectionModules: ['resolver', 'p2p'],
+    connectionModules: ['consensus', 'cryptography', 'resolver', 'p2p'],
   },
   {
     key: 'shards',
     label: 'Marshal Shards',
-    detail: 'Erasure-coded block shards on channel 3. Any threshold of shards reconstructs the finalized block body.',
+    detail: 'Erasure-coded block shards on channel 3 (the only channel that carries block bodies during consensus). A threshold of shards reconstructs the full block.',
     pipeline: SHARD_PIPELINE,
     connectionModules: ['marshal', 'p2p'],
   },
   {
     key: 'backfill',
     label: 'Marshal Backfill',
-    detail: 'Marshal resolver requesting whole finalized blocks a validator is missing on channel 4.',
+    detail: 'A lagging validator uses channel 4 (marshal\'s resolver) to request whole finalized blocks (or their finalizations) that are missing.',
     pipeline: BACKFILL_PIPELINE,
     connectionModules: ['marshal', 'resolver', 'p2p'],
   },
   {
-    key: 'dbSync',
-    label: 'DB Sync',
-    detail: 'QMDB state-sync (channel 5) and transaction-history sync (channel 6) used by recovering validators to reach a finalization floor.',
-    pipeline: DB_SYNC_PIPELINE,
-    connectionModules: ['glue', 'storage', 'resolver', 'p2p'],
+    key: 'stateSync',
+    label: 'State Sync',
+    detail: 'QMDB state-sync on channel 5: ranges of state operations, each with a Merkle proof, let a syncing validator rebuild account state without replaying the whole chain.',
+    pipeline: STATE_SYNC_PIPELINE,
+    connectionModules: ['glue', 'resolver', 'storage', 'p2p'],
+  },
+  {
+    key: 'txSync',
+    label: 'Tx Sync',
+    detail: 'Transaction-hash sync on channel 6. The transaction DB is compact (it keeps only a verifiable summary of its current contents, not the full operation history), so a syncing validator receives that single authenticated snapshot instead of a replayable stream of operations.',
+    pipeline: TX_SYNC_PIPELINE,
+    connectionModules: ['glue', 'resolver', 'storage', 'p2p'],
+  },
+  {
+    key: 'probe',
+    label: 'Probe',
+    detail: 'State-sync probe on channel 7: a validator fans out "send me your latest finalization" and verifies the threshold certificates that come back to pick its state-sync floor at startup (invalid ones get the sender blocked).',
+    pipeline: PROBE_PIPELINE,
+    connectionModules: ['glue', 'consensus', 'cryptography', 'p2p'],
   },
 ];
 
+// Pull a connection's endpoints in toward the middle by the given amounts so
+// the line runs border-to-border and its pipeline chips sit in the clear gap
+// between nodes instead of on top of them.
+function insetLine(x1, y1, x2, y2, startInset, endInset) {
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const len = Math.hypot(dx, dy) || 1;
+  const ux = dx / len;
+  const uy = dy / len;
+  return {
+    x1: x1 + ux * startInset,
+    y1: y1 + uy * startInset,
+    x2: x2 - ux * endInset,
+    y2: y2 - uy * endInset,
+  };
+}
+
 function ConstantinopleTooltip({ info, position }) {
   if (!info) return null;
-  const { type, id, moduleKey, pipelineLabel } = info;
+  const { type, id } = info;
   let title;
   let body;
 
-  if (type === 'module' && moduleKey) {
-    const mod = CONSTANTINOPLE_MODULES[moduleKey];
-    title = mod?.name;
-    body = pipelineLabel ? `${pipelineLabel}: ${mod?.detail}` : mod?.detail;
-  } else if (type === 'validator') {
-    title = id === PRIMARY_VALIDATOR ? `${id} (primary)` : id;
+  if (type === 'validator') {
+    title = id;
     body =
-      'Validator running the full Constantinople stack: simplex BFT consensus over a fixed epoch-zero set, erasure-coded marshal for block availability, QMDB state and transaction databases, stateful glue managing the speculative database lifecycle and sync, a mempool for transaction intake, authenticated p2p discovery, and resolvers for repair. The primary fronts the mempool HTTP listener; a secondary uploads finalized artifacts to the indexer.';
+      'Validator running the full Constantinople stack: simplex BFT consensus over a fixed epoch-zero set, erasure-coded marshal for block availability, QMDB state and transaction databases, stateful glue managing the speculative database lifecycle and sync, a mempool for transaction intake, authenticated p2p discovery, and resolvers for repair. Each primary fronts its own mempool HTTP listener; a non-voting secondary uploads finalized artifacts to the indexer.';
   } else if (type === 'spammer') {
     title = 'Spammer';
     body =
@@ -109,6 +141,14 @@ function ConstantinopleTooltip({ info, position }) {
     title = 'Explorer';
     body =
       'Live React block explorer. Subscribes to the indexer SQL block_meta stream (one frame per finalized block), renders a throughput histogram, and verifies submitted-transaction proofs browser-side against QMDB and simplex certificates.';
+  } else if (type === 'relayer') {
+    title = 'Relayer';
+    body =
+      'Non-voting secondary validator. Follows consensus to track the current view, forwards each submitted batch to the upcoming leaders\' mempools, retries across views, and serves account reads.';
+  } else if (type === 'secondary') {
+    title = 'Secondary';
+    body =
+      'Non-voting secondary validator. Reconstructs and applies every finalized block to its own QMDB, then uploads blocks, certificates, SQL metadata, and QMDB operation logs from its finalized hook via a durable queue.';
   }
 
   if (!title) return null;
@@ -129,21 +169,26 @@ export default function ConstantinopleChainVisualization({ mousePos }) {
   const [meshLane, setMeshLane] = useState('votes');
   const [tooltip, setTooltip] = useState(null);
 
-  const handleStageHover = useCallback((stage) => {
-    if (stage) {
-      setTooltip({ type: 'module', moduleKey: stage.module, pipelineLabel: stage.label });
-    } else {
-      setTooltip(null);
-    }
-  }, []);
-
   const activeLane = MESH_LANES.find((lane) => lane.key === meshLane);
-  const primary = VALIDATORS.find((v) => v.id === PRIMARY_VALIDATOR);
-  const uploader = VALIDATORS.find((v) => v.id === INDEXER_UPLOADER);
+  // The relayer forwards each batch to the validator about to lead this block.
+  const leaderNode = VALIDATORS[leader];
+  // The indexer secondary follows the chain; draw its follow link from the
+  // nearest diamond vertex (the right one).
+  const followSource = VALIDATORS[1];
+
+  // Border-to-border routing so pipeline chips sit in the clear gaps (service
+  // boxes ~66 half-wide, validators radius ~32).
+  const submitLine = insetLine(SPAMMER.x, SPAMMER.y, RELAYER.x, RELAYER.y, 70, 40);
+  const relayLine = insetLine(RELAYER.x, RELAYER.y, leaderNode.x, leaderNode.y, 40, 40);
+  const followLine = insetLine(followSource.x, followSource.y, INDEXER_SECONDARY.x, INDEXER_SECONDARY.y, 40, 40);
+  const uploadLine = insetLine(INDEXER_SECONDARY.x, INDEXER_SECONDARY.y, INDEXER.x, INDEXER.y, 40, 74);
+  const streamLine = insetLine(INDEXER.x, INDEXER.y, EXPLORER.x, EXPLORER.y, 48, 48);
 
   const clusterDimmed =
     highlightNode &&
     highlightNode !== 'spammer' &&
+    highlightNode !== 'relayer' &&
+    highlightNode !== 'secondary' &&
     highlightNode !== 'indexer' &&
     highlightNode !== 'explorer' &&
     !VALIDATORS.find((v) => v.id === highlightNode);
@@ -154,6 +199,7 @@ export default function ConstantinopleChainVisualization({ mousePos }) {
         modules={CONSTANTINOPLE_MODULE_LIST}
         activeModule={highlightModule}
         onSelect={setHighlightModule}
+        headerLabel="commonware/constantinople modules"
       />
 
       <svg
@@ -190,8 +236,6 @@ export default function ConstantinopleChainVisualization({ mousePos }) {
                 e.stopPropagation();
                 setHighlightModule('runtime');
               }}
-              onMouseEnter={() => setTooltip({ type: 'module', moduleKey: 'runtime' })}
-              onMouseLeave={() => setTooltip(null)}
             >
               <rect
                 x={0}
@@ -247,68 +291,94 @@ export default function ConstantinopleChainVisualization({ mousePos }) {
               >
                 {CLUSTER.label}
               </text>
-              <text
-                x={CLUSTER.cx}
-                y={CLUSTER.cy + oh / 2 + 18}
-                textAnchor="middle"
-                fill={highlightModule ? '#999' : '#767676'}
-                fontSize={10}
-                fontFamily="monospace"
-              >
-                fixed epoch-0 set, BLS threshold simplex over 8 authenticated channels
-              </text>
             </g>
           );
         })()}
 
-        {/* Spammer -> primary validator (transaction submission) */}
+        {/* Spammer -> relayer (submit a signed batch) */}
         <HttpConnection
-          x1={SPAMMER.x}
-          y1={SPAMMER.y}
-          x2={primary.x}
-          y2={primary.y}
+          x1={submitLine.x1}
+          y1={submitLine.y1}
+          x2={submitLine.x2}
+          y2={submitLine.y2}
           pipeline={SUBMIT_PIPELINE}
           modules={CONSTANTINOPLE_MODULES}
           connectionModules={SUBMIT_CONNECTION_MODULES}
           highlightModule={highlightModule}
           highlightNode={highlightNode}
           sourceId="spammer"
-          destId={PRIMARY_VALIDATOR}
+          destId="relayer"
           showPipeline
           showParticle={phase === 'SUBMIT'}
           particleColor="#1565C0"
-          onStageHover={handleStageHover}
           onModuleClick={setHighlightModule}
-          chipScale={1.05}
+          chipScale={0.95}
         />
 
-        {/* Secondary validator -> indexer (finalized artifact upload) */}
+        {/* Relayer -> upcoming leader's mempool (forward) */}
         <HttpConnection
-          x1={uploader.x}
-          y1={uploader.y}
-          x2={INDEXER.x}
-          y2={INDEXER.y}
+          x1={relayLine.x1}
+          y1={relayLine.y1}
+          x2={relayLine.x2}
+          y2={relayLine.y2}
+          pipeline={RELAY_PIPELINE}
+          modules={CONSTANTINOPLE_MODULES}
+          connectionModules={RELAY_CONNECTION_MODULES}
+          highlightModule={highlightModule}
+          highlightNode={highlightNode}
+          sourceId="relayer"
+          destId={leaderNode.id}
+          showPipeline
+          showParticle={phase === 'SUBMIT'}
+          particleColor="#1565C0"
+          onModuleClick={setHighlightModule}
+          chipScale={0.95}
+        />
+
+        {/* Indexer secondary follows the finalized chain over the mesh */}
+        <HttpConnection
+          x1={followLine.x1}
+          y1={followLine.y1}
+          x2={followLine.x2}
+          y2={followLine.y2}
+          modules={CONSTANTINOPLE_MODULES}
+          connectionModules={FOLLOW_CONNECTION_MODULES}
+          highlightModule={highlightModule}
+          highlightNode={highlightNode}
+          sourceId={followSource.id}
+          destId="secondary"
+          showPipeline={false}
+          showParticle={phase === 'FINALIZE'}
+          particleColor="#E65100"
+          onModuleClick={setHighlightModule}
+        />
+
+        {/* Indexer secondary -> indexer (finalized artifact upload) */}
+        <HttpConnection
+          x1={uploadLine.x1}
+          y1={uploadLine.y1}
+          x2={uploadLine.x2}
+          y2={uploadLine.y2}
           pipeline={UPLOAD_PIPELINE}
           modules={CONSTANTINOPLE_MODULES}
           connectionModules={UPLOAD_CONNECTION_MODULES}
           highlightModule={highlightModule}
           highlightNode={highlightNode}
-          sourceId={INDEXER_UPLOADER}
+          sourceId="secondary"
           destId="indexer"
           showPipeline
           showParticle={phase === 'INDEX'}
           particleColor="#546E7A"
-          onStageHover={handleStageHover}
           onModuleClick={setHighlightModule}
-          chipScale={1.05}
+          chipScale={0.95}
         />
 
         {/* Indexer -> explorer (SQL metadata stream) */}
         <HttpConnection
-          x1={INDEXER.x}
-          y1={INDEXER.y + 12}
-          x2={EXPLORER.x}
-          y2={EXPLORER.y - 12}
+          x1={streamLine.x1}
+          y1={streamLine.y1}
+          x2={streamLine.x2}
+          y2={streamLine.y2}
           pipeline={STREAM_PIPELINE}
           modules={CONSTANTINOPLE_MODULES}
           connectionModules={STREAM_CONNECTION_MODULES}
@@ -319,9 +389,8 @@ export default function ConstantinopleChainVisualization({ mousePos }) {
           showPipeline
           showParticle={phase === 'STREAM'}
           particleColor="#2E7D32"
-          onStageHover={handleStageHover}
           onModuleClick={setHighlightModule}
-          chipScale={1.05}
+          chipScale={0.95}
         />
 
         {/* Validator P2P mesh */}
@@ -333,7 +402,6 @@ export default function ConstantinopleChainVisualization({ mousePos }) {
           highlightNode={highlightNode}
           phase={phase}
           leader={leader}
-          onStageHover={handleStageHover}
           onModuleClick={setHighlightModule}
           chipScale={1.05}
         />
@@ -343,9 +411,8 @@ export default function ConstantinopleChainVisualization({ mousePos }) {
           <ConstantinopleValidatorNode
             key={v.id}
             validator={v}
-            isLeader={i === leader && (phase === 'IDLE' || phase === 'PROPOSE' || phase === 'VOTE')}
-            isPrimary={v.id === PRIMARY_VALIDATOR}
-            pulsing={phase === 'EXECUTE'}
+            isLeader={i === leader && (phase === 'IDLE' || phase === 'SUBMIT' || phase === 'PROPOSE')}
+            pulsing={phase === 'COMMIT' || (phase === 'VALIDATE' && i !== leader)}
             highlighted={highlightNode === v.id}
             dimmed={highlightNode && highlightNode !== v.id}
             highlightModule={highlightModule}
@@ -380,6 +447,46 @@ export default function ConstantinopleChainVisualization({ mousePos }) {
           onMouseEnter={() => {
             setHighlightNode('spammer');
             setTooltip({ type: 'spammer' });
+          }}
+          onMouseLeave={() => {
+            setHighlightNode(null);
+            setTooltip(null);
+          }}
+        />
+
+        {/* Relayer (non-voting secondary validator) */}
+        <ConstantinopleValidatorNode
+          validator={{ x: RELAYER.x, y: RELAYER.y, label: 'Relayer' }}
+          secondary
+          sublabel="non-voting"
+          pulsing={phase === 'SUBMIT'}
+          pulseColor="#1565C0"
+          highlighted={highlightNode === 'relayer'}
+          dimmed={highlightNode && highlightNode !== 'relayer'}
+          onClick={(e) => e.stopPropagation()}
+          onMouseEnter={() => {
+            setHighlightNode('relayer');
+            setTooltip({ type: 'relayer' });
+          }}
+          onMouseLeave={() => {
+            setHighlightNode(null);
+            setTooltip(null);
+          }}
+        />
+
+        {/* Indexer secondary (non-voting secondary validator) */}
+        <ConstantinopleValidatorNode
+          validator={{ x: INDEXER_SECONDARY.x, y: INDEXER_SECONDARY.y, label: 'Secondary' }}
+          secondary
+          sublabel="indexer uploader"
+          pulsing={phase === 'FINALIZE' || phase === 'INDEX'}
+          pulseColor="#546E7A"
+          highlighted={highlightNode === 'secondary'}
+          dimmed={highlightNode && highlightNode !== 'secondary'}
+          onClick={(e) => e.stopPropagation()}
+          onMouseEnter={() => {
+            setHighlightNode('secondary');
+            setTooltip({ type: 'secondary' });
           }}
           onMouseLeave={() => {
             setHighlightNode(null);
@@ -477,7 +584,7 @@ export default function ConstantinopleChainVisualization({ mousePos }) {
 
       <div className="channel-selectors-row">
         <div className="channel-selector">
-          <div className="channel-selector-label">Validator Mesh Lanes</div>
+          <div className="channel-selector-label">Validator P2P Channels</div>
           <div className="channel-selector-buttons">
             {MESH_LANES.map((lane) => {
               const active = lane.key === meshLane;

@@ -2,15 +2,16 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 
 // One block's lifecycle, from transaction intake to the live explorer.
 const PHASES = [
-  { name: 'IDLE', duration: 900 },
+  { name: 'IDLE', duration: 800 },
   { name: 'SUBMIT', duration: 1600 },
-  { name: 'PROPOSE', duration: 2000 },
-  { name: 'VOTE', duration: 1500 },
-  { name: 'NOTARIZE', duration: 1700 },
-  { name: 'FINALIZE', duration: 1700 },
-  { name: 'EXECUTE', duration: 1500 },
-  { name: 'INDEX', duration: 1500 },
-  { name: 'STREAM', duration: 1500 },
+  { name: 'PROPOSE', duration: 1700 },
+  { name: 'VALIDATE', duration: 1300 },
+  { name: 'VOTE', duration: 1400 },
+  { name: 'NOTARIZE', duration: 1500 },
+  { name: 'FINALIZE', duration: 1600 },
+  { name: 'COMMIT', duration: 1300 },
+  { name: 'INDEX', duration: 1400 },
+  { name: 'STREAM', duration: 1400 },
 ];
 
 const TOTAL_CYCLE = PHASES.reduce((s, p) => s + p.duration, 0);

@@ -1,6 +1,11 @@
 // Validator-to-validator lanes over the shared authenticated discovery mesh.
 // Each lane maps to one of the engine's rate-limited p2p channels.
 
+// Chips show the codec encode/decode boundary, the channel's owning module
+// (commonware-resolver where it is the request/response mechanism), and the
+// p2p transport - matching the codec-bracketed pipeline style used by the
+// other visualizations. coding and parallel are folded into their owners.
+
 // Channel 0: simplex votes.
 export const VOTE_PIPELINE = [
   { module: 'codec', label: 'encode', side: 'source' },
@@ -17,7 +22,7 @@ export const CERT_PIPELINE = [
   { module: 'codec', label: 'decode', side: 'dest' },
 ];
 
-// Channel 2: simplex resolver certificate repair by view.
+// Channel 2: simplex backfiller certificate repair by view.
 export const CERT_REPAIR_PIPELINE = [
   { module: 'codec', label: 'encode', side: 'source' },
   { module: 'resolver', label: 'cert repair', side: 'inner', width: 84 },
@@ -33,34 +38,54 @@ export const SHARD_PIPELINE = [
   { module: 'codec', label: 'decode', side: 'dest' },
 ];
 
-// Channel 4: marshal block backfill resolver.
+// Channel 4: marshal block backfill resolver (marshal owner in the dots).
 export const BACKFILL_PIPELINE = [
-  { module: 'resolver', label: 'block request', side: 'source', width: 84 },
-  { module: 'marshal', label: 'backfill', side: 'inner' },
+  { module: 'codec', label: 'encode', side: 'source' },
+  { module: 'resolver', label: 'block backfill', side: 'inner', width: 92 },
   { module: 'p2p', label: 'mesh', side: 'center' },
   { module: 'codec', label: 'decode', side: 'dest' },
 ];
 
-// Channels 5 and 6: QMDB state-sync and transaction-history sync.
-export const DB_SYNC_PIPELINE = [
-  { module: 'glue', label: 'sync plan', side: 'source' },
-  { module: 'resolver', label: 'state + tx ops', side: 'inner', width: 92 },
+// Channel 5: QMDB state-sync (glue-driven; applies to storage - both in the dots).
+export const STATE_SYNC_PIPELINE = [
+  { module: 'codec', label: 'encode', side: 'source' },
+  { module: 'resolver', label: 'state ops + proof', side: 'inner', width: 98 },
   { module: 'p2p', label: 'mesh', side: 'center' },
-  { module: 'storage', label: 'QMDB apply', side: 'dest', width: 84 },
+  { module: 'codec', label: 'decode', side: 'dest' },
 ];
 
-// Spammer to primary validator: signed transactions submitted over HTTP.
+// Channel 6: transaction-hash sync (compact QMDB frontier).
+export const TX_SYNC_PIPELINE = [
+  { module: 'codec', label: 'encode', side: 'source' },
+  { module: 'resolver', label: 'tx frontier', side: 'inner', width: 84 },
+  { module: 'p2p', label: 'mesh', side: 'center' },
+  { module: 'codec', label: 'decode', side: 'dest' },
+];
+
+// Channel 7: state-sync probe (glue-driven; response is a threshold finalization cert).
+export const PROBE_PIPELINE = [
+  { module: 'codec', label: 'encode', side: 'source' },
+  { module: 'consensus', label: 'finalization', side: 'inner', width: 84 },
+  { module: 'p2p', label: 'mesh', side: 'center' },
+  { module: 'codec', label: 'decode', side: 'dest' },
+];
+
+// Spammer to relayer: a signed transaction batch submitted over HTTP.
 export const SUBMIT_PIPELINE = [
   { module: 'cryptography', label: 'sign batch', side: 'source', width: 78 },
-  { label: 'HTTP POST', side: 'inner', color: '#90A4AE' },
-  { module: 'mempool', label: 'admit', side: 'dest' },
+  { label: 'HTTP POST', side: 'center', color: '#90A4AE' },
+];
+
+// Relayer to the upcoming leader: the batch forwarded to that primary's mempool.
+export const RELAY_PIPELINE = [
+  { label: 'HTTP POST', side: 'source', color: '#90A4AE' },
+  { module: 'mempool', label: 'mempool', side: 'dest' },
 ];
 
 // Secondary validator to indexer: finalized artifact upload to the exoware Store.
 export const UPLOAD_PIPELINE = [
   { module: 'codec', label: 'encode', side: 'source' },
-  { label: 'upload', side: 'inner', color: '#90A4AE' },
-  { module: 'storage', label: 'exoware store', side: 'dest', width: 84 },
+  { module: 'storage', label: 'store', side: 'dest' },
 ];
 
 // Indexer to explorer: SQL metadata stream consumed by the live block explorer.
@@ -86,7 +111,6 @@ export const VALIDATOR_INTERNAL = [
 export const SPAMMER_INTERNAL = [
   { module: 'cryptography', label: 'sign' },
   { module: 'codec', label: 'encode' },
-  { module: 'mempool', label: 'client' },
 ];
 
 export const INDEXER_INTERNAL = [

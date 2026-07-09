@@ -3,13 +3,11 @@ import ConstantinopleChainVisualization from './ConstantinopleChainVisualization
 import ConstantinopleValidatorVisualization from './ConstantinopleValidatorVisualization';
 
 const SUB_TABS = [
-  // Chain sub-tab temporarily hidden; uncomment to restore it (and consider
-  // switching DEFAULT_SUB_TAB back to 'chain').
-  // { id: 'chain', label: 'chain' },
+  { id: 'chain', label: 'chain' },
   { id: 'validator', label: 'validator' },
 ];
 
-const DEFAULT_SUB_TAB = 'validator';
+const DEFAULT_SUB_TAB = 'chain';
 
 export default function ConstantinopleVisualization() {
   const [subTab, setSubTab] = useState(DEFAULT_SUB_TAB);

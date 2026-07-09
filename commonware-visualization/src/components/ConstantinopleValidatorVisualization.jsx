@@ -236,7 +236,7 @@ export default function ConstantinopleValidatorVisualization({ mousePos }) {
           fontFamily="monospace"
           opacity={0.5}
         >
-          runtime (tokio async + rayon workers) - storage, networking, telemetry, metrics
+          runtime (tokio async + rayon workers, storage, networking, telemetry, metrics)
         </text>
 
         {/* Validator process boundary */}
