@@ -177,11 +177,13 @@ export default function ConstantinopleChainVisualization({ mousePos }) {
   const followSource = VALIDATORS[1];
 
   // Border-to-border routing so pipeline chips sit in the clear gaps (service
-  // boxes ~66 half-wide, validators radius ~32).
-  const submitLine = insetLine(SPAMMER.x, SPAMMER.y, RELAYER.x, RELAYER.y, 70, 40);
+  // boxes 132x84, validators radius ~32). Submit, upload, and stream run
+  // vertically inside the flanking columns, so their insets clear the service
+  // boxes' half-heights (~42) rather than half-widths.
+  const submitLine = insetLine(SPAMMER.x, SPAMMER.y, RELAYER.x, RELAYER.y, 48, 40);
   const relayLine = insetLine(RELAYER.x, RELAYER.y, leaderNode.x, leaderNode.y, 40, 40);
   const followLine = insetLine(followSource.x, followSource.y, INDEXER_SECONDARY.x, INDEXER_SECONDARY.y, 40, 40);
-  const uploadLine = insetLine(INDEXER_SECONDARY.x, INDEXER_SECONDARY.y, INDEXER.x, INDEXER.y, 40, 74);
+  const uploadLine = insetLine(INDEXER_SECONDARY.x, INDEXER_SECONDARY.y, INDEXER.x, INDEXER.y, 40, 48);
   const streamLine = insetLine(INDEXER.x, INDEXER.y, EXPLORER.x, EXPLORER.y, 48, 48);
 
   const clusterDimmed =
@@ -458,7 +460,6 @@ export default function ConstantinopleChainVisualization({ mousePos }) {
         <ConstantinopleValidatorNode
           validator={{ x: RELAYER.x, y: RELAYER.y, label: 'Relayer' }}
           secondary
-          sublabel="non-voting"
           pulsing={phase === 'SUBMIT'}
           pulseColor="#1565C0"
           highlighted={highlightNode === 'relayer'}
@@ -478,7 +479,6 @@ export default function ConstantinopleChainVisualization({ mousePos }) {
         <ConstantinopleValidatorNode
           validator={{ x: INDEXER_SECONDARY.x, y: INDEXER_SECONDARY.y, label: 'Secondary' }}
           secondary
-          sublabel="indexer uploader"
           pulsing={phase === 'FINALIZE' || phase === 'INDEX'}
           pulseColor="#546E7A"
           highlighted={highlightNode === 'secondary'}

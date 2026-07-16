@@ -1,11 +1,11 @@
 // SVG viewBox dimensions
-export const WIDTH = 1560;
+export const WIDTH = 1150;
 export const HEIGHT = 800;
 
 // Validator cluster center
 export const CLUSTER = {
   label: 'Validators',
-  cx: 770,
+  cx: 590,
   cy: 400,
   width: 540,
   height: 560,
@@ -28,14 +28,16 @@ export const VALIDATORS = DIAMOND.map((d, i) => ({
   y: CLUSTER.cy + d.dy,
 }));
 
-// Off-cluster nodes. Two non-voting secondaries sit outside the quorum: a
-// relayer (submit path) on the left, and an indexer uploader (finalized-artifact
-// path) on the right. The exoware store (Indexer) and Explorer are further right.
-export const SPAMMER = { x: 95, y: 400 };
-export const RELAYER = { x: 375, y: 400 };
-export const INDEXER_SECONDARY = { x: 1180, y: 300 };
-export const INDEXER = { x: 1445, y: 240 };
-export const EXPLORER = { x: 1445, y: 580 };
+// Off-cluster nodes, stacked as vertical columns flanking the cluster to keep
+// the scene compact. Left column (submit path): the spammer feeds the relayer,
+// a non-voting secondary. Right column (finalized-artifact path): the indexer
+// uploader secondary feeds the exoware store (Indexer), which streams to the
+// Explorer.
+export const SPAMMER = { x: 130, y: 250 };
+export const RELAYER = { x: 130, y: 550 };
+export const INDEXER_SECONDARY = { x: 1020, y: 170 };
+export const INDEXER = { x: 1020, y: 415 };
+export const EXPLORER = { x: 1020, y: 660 };
 
 // Modules carried on each connection class (used for highlight dimming).
 export const P2P_MESH_MODULES = [
